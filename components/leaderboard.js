@@ -1,8 +1,9 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import { useAuth } from "../contexts/AuthContext"
 import {
   Search,
   LayoutDashboard,
@@ -132,14 +133,14 @@ const leaderboardData = [
   },
 ]
 
-const getRankIcon = (rank: string) => {
+const getRankIcon = (rank) => {
   if (rank === "Cloud Pro") return "☁️"
   if (rank === "Cloud Explorer") return "🌥️"
   return "🌩️"
 }
 
-const getRankColor = (rank: string) => {
-  const colors: Record<string, string> = {
+const getRankColor = (rank) => {
+  const colors = {
     "Cloud Pro": "text-[#4285F4]", // Google Blue
     "Cloud Explorer": "text-[#0F9D58]", // Google Green
     "Cloud Beginner": "text-[#F4B400]", // Google Yellow
@@ -147,8 +148,8 @@ const getRankColor = (rank: string) => {
   return colors[rank] || "text-[#F4B400]"
 }
 
-const getRankBgColor = (rank: string) => {
-  const colors: Record<string, string> = {
+const getRankBgColor = (rank) => {
+  const colors = {
     "Cloud Pro": "bg-[#4285F4]/10 border border-[#4285F4]/20",
     "Cloud Explorer": "bg-[#0F9D58]/10 border border-[#0F9D58]/20",
     "Cloud Beginner": "bg-[#F4B400]/10 border border-[#F4B400]/20",
@@ -157,6 +158,16 @@ const getRankBgColor = (rank: string) => {
 }
 
 export function Leaderboard() {
+  const { user, logOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
       {/* Sidebar */}
@@ -173,15 +184,22 @@ export function Leaderboard() {
           </div>
         </div>
         
-        {/* User Profile - Simplified */}
+        {/* User Profile - Now shows Firebase user */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/user-profile-illustration.png" />
-              <AvatarFallback className="bg-[#4285F4] text-white text-sm">PS</AvatarFallback>
+              <AvatarImage src={user?.photoURL || "/user-profile-illustration.png"} />
+              <AvatarFallback className="bg-[#4285F4] text-white text-sm">
+                {user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900">Priya S.</div>
+              <div className="text-sm font-medium text-gray-900 truncate">
+                {user?.displayName || user?.email?.split('@')[0] || 'User'}
+              </div>
+              {user?.email && (
+                <div className="text-xs text-gray-500 truncate">{user.email}</div>
+              )}
             </div>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700">
               <ChevronDown className="h-4 w-4" />
@@ -222,7 +240,11 @@ export function Leaderboard() {
             <Settings className="mr-3 h-5 w-5" />
             Settings
           </Button>
-          <Button variant="ghost" className="w-full justify-start text-gray-700 hover:bg-gray-100 h-10 rounded-lg">
+          <Button 
+            variant="ghost" 
+            onClick={handleLogout}
+            className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 h-10 rounded-lg"
+          >
             <LogOut className="mr-3 h-5 w-5" />
             Logout
           </Button>
@@ -305,7 +327,7 @@ export function Leaderboard() {
                 bronze: "border-t-[#DB4437] shadow-[#DB4437]/20"
               }
               return (
-                <div key={index} className={`bg-white rounded-2xl p-6 border-t-4 ${borderColors[player.trophy as keyof typeof borderColors]} shadow-lg hover:shadow-xl transition-shadow`}>
+                <div key={index} className={`bg-white rounded-2xl p-6 border-t-4 ${borderColors[player.trophy]} shadow-lg hover:shadow-xl transition-shadow`}>
                   <div className="flex items-start justify-between mb-4">
                     <Avatar className="h-16 w-16 ring-4 ring-white shadow-lg">
                       <AvatarImage src={player.avatar || "/placeholder.svg"} />
