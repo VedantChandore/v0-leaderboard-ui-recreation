@@ -7,6 +7,7 @@ import { Input } from "../components/ui/input"
 import { useAuth } from "../contexts/AuthContext"
 import { ProfileModal } from "./ProfileModal"
 import { rankParticipants, getTierColor, getTierBgColor, getTierIcon } from "../lib/leaderboardManager"
+import { subscribeToLeaderboard, participantExists, addParticipant } from "../lib/leaderboardDB"
 import {
   Search,
   LayoutDashboard,
@@ -164,6 +165,18 @@ export function Leaderboard() {
   const [participants, setParticipants] = useState([]);
   const [rankedParticipants, setRankedParticipants] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Subscribe to real-time leaderboard updates
+  useEffect(() => {
+    const unsubscribe = subscribeToLeaderboard((updatedParticipants) => {
+      setParticipants(updatedParticipants);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
 
   // Update rankings whenever participants change
   useEffect(() => {
@@ -179,8 +192,20 @@ export function Leaderboard() {
     }
   };
 
-  const handleParticipantAdded = (newParticipant) => {
-    setParticipants(prev => [...prev, newParticipant]);
+  const handleParticipantAdded = async (newParticipant) => {
+    try {
+      // Check if participant already exists
+      const exists = await participantExists(newParticipant.profileUrl);
+      if (exists) {
+        throw new Error('This profile has already been submitted');
+      }
+
+      // Add to Firestore (will trigger real-time update)
+      await addParticipant(newParticipant);
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      throw error; // Re-throw to be handled by modal
+    }
   };
 
   const handleTrackProgress = () => {

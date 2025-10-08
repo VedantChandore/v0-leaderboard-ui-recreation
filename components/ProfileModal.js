@@ -41,7 +41,7 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
       const participant = toLeaderboardEntry(profileData);
       participant.profileUrl = url;
       
-      onParticipantAdded(participant);
+      await onParticipantAdded(participant);
       
       setStatus('success');
       setMessage(`Welcome ${profileData.name}! You've been added to the leaderboard.`);
@@ -56,7 +56,14 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
     } catch (error) {
       console.error('Error submitting profile:', error);
       setStatus('error');
-      setMessage('Failed to fetch your profile. Please check the URL and try again.');
+      
+      if (error.message.includes('already been submitted')) {
+        setMessage('This profile has already been submitted to the leaderboard.');
+      } else if (error.message.includes('Failed to fetch')) {
+        setMessage('Failed to fetch your profile. Please check the URL and try again.');
+      } else {
+        setMessage('An error occurred while adding your profile. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
