@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   Users,
   ChevronDown,
-  Settings,
   LogOut,
   Trophy,
   Cloud,
@@ -252,10 +251,6 @@ export function Leaderboard() {
 
         {/* Bottom Actions */}
         <div className="p-4 space-y-2 border-t border-gray-100">
-          <Button variant="ghost" className="w-full justify-start text-gray-700 hover:bg-gray-100 h-10 rounded-lg">
-            <Settings className="mr-3 h-5 w-5" />
-            Settings
-          </Button>
           <Button 
             variant="ghost" 
             onClick={handleLogout}
