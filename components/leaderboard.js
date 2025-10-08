@@ -217,10 +217,6 @@ export function Leaderboard() {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2">
-          <Button variant="ghost" className="w-full justify-start text-gray-700 hover:bg-gray-100 h-10 rounded-lg">
-            <LayoutDashboard className="mr-3 h-5 w-5" />
-            Dashboard
-          </Button>
           <Button variant="ghost" className="w-full justify-start text-[#4285F4] hover:bg-[#4285F4]/10 h-10 rounded-lg bg-[#4285F4]/5">
             <Trophy className="mr-3 h-5 w-5" />
             Top Learners
@@ -290,11 +286,11 @@ export function Leaderboard() {
                 <div className="flex items-center gap-2 px-4 py-2 bg-[#F4B400]/10 border border-[#F4B400]/20 rounded-full">
                   <Timer className="h-4 w-4 text-[#F4B400]" />
                   <span className="text-sm text-gray-700">
-                    Event ends in: <span className="font-semibold text-[#F4B400]">2d 5h</span>
+                    Event ends in: <span className="font-semibold text-[#F4B400]">31st Oct</span>
                   </span>
                 </div>
                 <Button className="h-10 bg-[#4285F4] hover:bg-[#3367D6] text-white rounded-lg px-6 shadow-md">
-                  View My Progress
+                  Track My Progress
                 </Button>
               </div>
             </div>
@@ -309,12 +305,6 @@ export function Leaderboard() {
               <button className="pb-3 text-sm font-semibold border-b-2 border-[#4285F4] text-[#4285F4]">Rank</button>
               <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">Labs Completed</button>
               <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">Badges Earned</button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="px-4 py-2 text-sm rounded-full bg-[#4285F4] text-white font-medium shadow-sm">24h</button>
-              <button className="px-4 py-2 text-sm rounded-full text-gray-600 hover:bg-gray-100">7D</button>
-              <button className="px-4 py-2 text-sm rounded-full text-gray-600 hover:bg-gray-100">30D</button>
-              <button className="px-4 py-2 text-sm rounded-full text-gray-600 hover:bg-gray-100">All Time</button>
             </div>
           </div>
 
