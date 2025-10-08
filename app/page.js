@@ -1,10 +1,10 @@
-import { SimpleLeaderboard } from "../components/SimpleLeaderboard"
+import { Leaderboard } from "../components/leaderboard"
 import { ProtectedRoute } from "../components/ProtectedRoute"
 
 export default function Page() {
   return (
     <ProtectedRoute>
-      <SimpleLeaderboard />
+      <Leaderboard />
     </ProtectedRoute>
   )
 }

@@ -1,9 +1,12 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { useAuth } from "../contexts/AuthContext"
+import { ProfileModal } from "./ProfileModal"
+import { rankParticipants, getTierColor, getTierBgColor, getTierIcon } from "../lib/leaderboardManager"
 import {
   Search,
   LayoutDashboard,
@@ -159,6 +162,15 @@ const getRankBgColor = (rank) => {
 
 export function Leaderboard() {
   const { user, logOut } = useAuth();
+  const [participants, setParticipants] = useState([]);
+  const [rankedParticipants, setRankedParticipants] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Update rankings whenever participants change
+  useEffect(() => {
+    const ranked = rankParticipants(participants);
+    setRankedParticipants(ranked);
+  }, [participants]);
 
   const handleLogout = async () => {
     try {
@@ -166,6 +178,14 @@ export function Leaderboard() {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleParticipantAdded = (newParticipant) => {
+    setParticipants(prev => [...prev, newParticipant]);
+  };
+
+  const handleTrackProgress = () => {
+    setIsModalOpen(true);
   };
 
   return (
@@ -289,7 +309,10 @@ export function Leaderboard() {
                     Event ends in: <span className="font-semibold text-[#F4B400]">31st Oct</span>
                   </span>
                 </div>
-                <Button className="h-10 bg-[#4285F4] hover:bg-[#3367D6] text-white rounded-lg px-6 shadow-md">
+                <Button 
+                  onClick={handleTrackProgress}
+                  className="h-10 bg-[#4285F4] hover:bg-[#3367D6] text-white rounded-lg px-6 shadow-md"
+                >
                   Track My Progress
                 </Button>
               </div>
@@ -361,58 +384,93 @@ export function Leaderboard() {
 
           {/* Leaderboard Table */}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-lg">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Place</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Participant</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Labs Completed</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Badges Earned</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Completion Rate</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Tier</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboardData.map((player, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-sm font-semibold text-gray-900">{player.place}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 shadow-sm">
-                          <AvatarImage src={player.avatar || "/placeholder.svg"} />
-                          <AvatarFallback className="bg-gradient-to-br from-[#4285F4] to-[#0F9D58] text-white font-semibold">{player.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-semibold text-gray-900">{player.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm font-bold text-[#4285F4]">{player.labsCompleted}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm font-bold text-[#0F9D58]">{player.badgesEarned}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`text-sm font-bold ${Number.parseInt(player.completionRate) >= 70 ? "text-[#0F9D58]" : "text-[#F4B400]"}`}
-                      >
-                        {player.completionRate}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div
-                        className={`flex items-center gap-2 px-3 py-2 rounded-full w-fit ${getRankBgColor(player.rank)}`}
-                      >
-                        <span className="text-base">{getRankIcon(player.rank)}</span>
-                        <span className={`text-sm font-semibold ${getRankColor(player.rank)}`}>{player.rank}</span>
-                      </div>
-                    </td>
+            {rankedParticipants.length > 0 ? (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 w-20">Place</th>
+                    <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Participant</th>
+                    <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 w-48">Tier</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rankedParticipants.map((participant, index) => (
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      {/* Place */}
+                      <td className="py-6 px-6">
+                        <div className="flex items-center justify-center">
+                          {participant.place <= 3 ? (
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-white ${
+                              participant.place === 1 ? 'bg-[#F4B400]' : 
+                              participant.place === 2 ? 'bg-gray-400' : 'bg-[#DB4437]'
+                            }`}>
+                              {participant.place}
+                            </div>
+                          ) : (
+                            <div className="text-lg font-bold text-gray-600">
+                              {participant.place}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Participant */}
+                      <td className="py-6 px-6">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-12 w-12 shadow-sm">
+                            <AvatarImage src={participant.avatar} />
+                            <AvatarFallback className="bg-gradient-to-br from-[#4285F4] to-[#0F9D58] text-white font-semibold text-lg">
+                              {participant.name[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="text-base font-semibold text-gray-900">{participant.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {participant.badgesEarned} badges • {participant.labsCompleted} labs
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Tier */}
+                      <td className="py-6 px-6">
+                        <div className={`inline-flex items-center gap-3 px-4 py-3 rounded-full ${getTierBgColor(participant.tier)}`}>
+                          <span className="text-xl">{getTierIcon(participant.tier)}</span>
+                          <span className={`text-sm font-semibold ${getTierColor(participant.tier)}`}>
+                            {participant.tier}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-12 text-center">
+                <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <Trophy className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No participants yet</h3>
+                <p className="text-gray-600 mb-4">Click "Track My Progress" to be the first participant!</p>
+                <Button 
+                  onClick={handleTrackProgress}
+                  className="bg-[#4285F4] hover:bg-[#3367D6] text-white px-6 py-2 rounded-lg shadow-md"
+                >
+                  Get Started
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      {/* Profile Modal */}
+      <ProfileModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onParticipantAdded={handleParticipantAdded}
+        existingParticipants={participants}
+      />
     </div>
   )
 }
