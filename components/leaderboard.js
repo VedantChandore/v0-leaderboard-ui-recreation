@@ -346,8 +346,6 @@ export function Leaderboard() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-8">
               <button className="pb-3 text-sm font-semibold border-b-2 border-[#4285F4] text-[#4285F4]">Rank</button>
-              <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">Labs Completed</button>
-              <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">Badges Earned</button>
             </div>
           </div>
 
