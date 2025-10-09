@@ -14,6 +14,68 @@ let updateStatus = {
 
 export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+    
+    // If action=start, start the update process
+    if (action === 'start') {
+      // Check if update is already running
+      if (updateStatus.isRunning) {
+        return NextResponse.json({
+          success: true,
+          message: 'Update service is already running',
+          timestamp: new Date().toISOString(),
+          status: 'already-running',
+          progress: {
+            total: updateStatus.totalParticipants,
+            completed: updateStatus.completed,
+            errors: updateStatus.errors,
+            startTime: updateStatus.startTime
+          }
+        });
+      }
+
+      // Run background update process using Promise.resolve().then() instead of setImmediate
+      Promise.resolve().then(() => {
+        runBackgroundUpdate().catch(error => {
+          console.error('❌ Background update failed:', error);
+          updateStatus.isRunning = false;
+        });
+      });
+
+      // Immediately return response to avoid timeout
+      return NextResponse.json({
+        success: true,
+        message: 'Background update service started',
+        timestamp: new Date().toISOString(),
+        status: 'starting'
+      });
+    }
+    
+    // Default: Return current status
+    const participants = await getAllParticipants();
+    
+    return NextResponse.json({
+      success: true,
+      status: updateStatus,
+      participantCount: participants.length,
+      lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in update service:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to process request',
+      message: error.message 
+    }, { status: 500 });
+  }
+}
+
+// Keep POST for backwards compatibility
+export async function POST(request) {
+  try {
     // Check if update is already running
     if (updateStatus.isRunning) {
       return NextResponse.json({
@@ -30,8 +92,8 @@ export async function GET(request) {
       });
     }
 
-    // Run background update process (don't await)
-    setImmediate(() => {
+    // Run background update process
+    Promise.resolve().then(() => {
       runBackgroundUpdate().catch(error => {
         console.error('❌ Background update failed:', error);
         updateStatus.isRunning = false;
@@ -55,29 +117,6 @@ export async function GET(request) {
     }, { status: 500 });
   }
 }
-
-// export async function GET(request) {
-//   // Return current status for GET requests
-//   try {
-//     const participants = await getAllParticipants();
-    
-//     return NextResponse.json({
-//       success: true,
-//       status: updateStatus,
-//       participantCount: participants.length,
-//       lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
-//       timestamp: new Date().toISOString()
-//     });
-
-//   } catch (error) {
-//     console.error('Error getting update status:', error);
-//     return NextResponse.json({ 
-//       success: false, 
-//       error: 'Failed to get status',
-//       message: error.message 
-//     }, { status: 500 });
-//   }
-// }
 
 /**
  * Background service that updates all participants in parallel
@@ -106,8 +145,8 @@ async function runBackgroundUpdate() {
       return;
     }
 
-    // Create parallel update promises with concurrency control
-    const BATCH_SIZE = 5; // Process 5 participants at a time to avoid overwhelming the API
+    // Reduce batch size for Vercel's serverless environment
+    const BATCH_SIZE = 3; // Smaller batch size for better reliability on Vercel
     const batches = [];
     
     for (let i = 0; i < participants.length; i += BATCH_SIZE) {
@@ -129,16 +168,16 @@ async function runBackgroundUpdate() {
           })
           .catch(error => {
             updateStatus.errors++;
-            throw error;
+            return { status: 'failed', participant: participant.name, error: error.message };
           })
       );
 
       // Wait for current batch to complete before starting next
       await Promise.allSettled(batchPromises);
       
-      // Small delay between batches to be respectful to the API
+      // Small delay between batches to be respectful to the API and Vercel limits
       if (batchIndex < batches.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay for Vercel
       }
     }
 
@@ -172,17 +211,17 @@ async function updateParticipantData(participant, index) {
       throw new Error('No profile URL found');
     }
 
-    // Add retry logic for failed requests
+    // Add retry logic for failed requests with shorter timeout for Vercel
     let freshProfileData;
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2; // Reduced retries for Vercel
     
     while (retryCount < maxRetries) {
       try {
-        // Fetch fresh profile data with timeout
+        // Fetch fresh profile data with shorter timeout for Vercel
         const fetchPromise = fetchProfileData(participant.profileUrl);
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 30000)
+          setTimeout(() => reject(new Error('Request timeout')), 15000) // Shorter timeout
         );
         
         freshProfileData = await Promise.race([fetchPromise, timeoutPromise]);
@@ -196,15 +235,16 @@ async function updateParticipantData(participant, index) {
           throw error; // Final attempt failed
         }
         
-        // Wait before retry (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        // Wait before retry (shorter backoff for Vercel)
+        await new Promise(resolve => setTimeout(resolve, 500 * retryCount));
       }
     }
     
-    // Check if data has changed
+    // Check if data has changed (include points check)
     const hasChanges = (
       freshProfileData.badgesEarned !== participant.badgesEarned ||
       freshProfileData.labsCompleted !== participant.labsCompleted ||
+      freshProfileData.points !== participant.points ||
       freshProfileData.tier !== participant.tier ||
       freshProfileData.league !== participant.league
     );
@@ -214,10 +254,11 @@ async function updateParticipantData(participant, index) {
       return { status: 'no-changes', participant: participant.name };
     }
 
-    // Prepare update data
+    // Prepare update data (include points)
     const updateData = {
       badgesEarned: freshProfileData.badgesEarned,
       labsCompleted: freshProfileData.labsCompleted,
+      points: freshProfileData.points, // Add points to update
       tier: freshProfileData.tier,
       league: freshProfileData.league,
       rankingScore: freshProfileData.rankingScore,
@@ -233,6 +274,7 @@ async function updateParticipantData(participant, index) {
 
     console.log(`✅ [${index}] ${participant.name} updated successfully in ${duration}s`);
     console.log(`   📊 Badges: ${participant.badgesEarned} → ${freshProfileData.badgesEarned}`);
+    console.log(`   💰 Points: ${participant.points} → ${freshProfileData.points}`);
     console.log(`   🧪 Labs: ${participant.labsCompleted} → ${freshProfileData.labsCompleted}`);
     console.log(`   🏆 Tier: ${participant.tier} → ${freshProfileData.tier}`);
 
@@ -241,6 +283,7 @@ async function updateParticipantData(participant, index) {
       participant: participant.name,
       changes: {
         badges: { old: participant.badgesEarned, new: freshProfileData.badgesEarned },
+        points: { old: participant.points, new: freshProfileData.points },
         labs: { old: participant.labsCompleted, new: freshProfileData.labsCompleted },
         tier: { old: participant.tier, new: freshProfileData.tier }
       },
@@ -253,7 +296,7 @@ async function updateParticipantData(participant, index) {
     
     console.error(`❌ [${index}] Failed to update ${participant.name} after ${duration}s:`, error.message);
     
-    // Don't throw the error, just return failure status to continue with other participants
+    // Return failure status to continue with other participants
     return {
       status: 'failed',
       participant: participant.name,
@@ -262,3 +305,7 @@ async function updateParticipantData(participant, index) {
     };
   }
 }
+
+// Add runtime config for Vercel
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes max execution time
