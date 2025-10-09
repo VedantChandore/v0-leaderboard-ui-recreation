@@ -12,7 +12,7 @@ let updateStatus = {
   startTime: null
 };
 
-export async function POST(request) {
+export async function GET(request) {
   try {
     // Check if update is already running
     if (updateStatus.isRunning) {
@@ -56,28 +56,28 @@ export async function POST(request) {
   }
 }
 
-export async function GET(request) {
-  // Return current status for GET requests
-  try {
-    const participants = await getAllParticipants();
+// export async function GET(request) {
+//   // Return current status for GET requests
+//   try {
+//     const participants = await getAllParticipants();
     
-    return NextResponse.json({
-      success: true,
-      status: updateStatus,
-      participantCount: participants.length,
-      lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
-      timestamp: new Date().toISOString()
-    });
+//     return NextResponse.json({
+//       success: true,
+//       status: updateStatus,
+//       participantCount: participants.length,
+//       lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
+//       timestamp: new Date().toISOString()
+//     });
 
-  } catch (error) {
-    console.error('Error getting update status:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to get status',
-      message: error.message 
-    }, { status: 500 });
-  }
-}
+//   } catch (error) {
+//     console.error('Error getting update status:', error);
+//     return NextResponse.json({ 
+//       success: false, 
+//       error: 'Failed to get status',
+//       message: error.message 
+//     }, { status: 500 });
+//   }
+// }
 
 /**
  * Background service that updates all participants in parallel
