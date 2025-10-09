@@ -166,23 +166,41 @@ export function Leaderboard() {
   const [rankedParticipants, setRankedParticipants] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
 
-  // Subscribe to real-time leaderboard updates
+  // Real-time leaderboard subscription
   useEffect(() => {
+    console.log('🚀 Initializing real-time leaderboard...');
+    setIsLoading(true);
+    
     const unsubscribe = subscribeToLeaderboard((updatedParticipants) => {
+      console.log('⚡ Real-time update received:', updatedParticipants.length, 'participants');
+      
+      // Update connection status
+      setConnectionStatus('connected');
+      
+      // Set participants (already ranked from database)
       setParticipants(updatedParticipants);
+      setRankedParticipants(updatedParticipants); // Already ranked
       setIsLoading(false);
+      
+      // Log leaderboard changes
+      if (updatedParticipants.length > 0) {
+        console.log('🏆 Current Top 3:');
+        updatedParticipants.slice(0, 3).forEach((p, i) => {
+          console.log(`${i + 1}. ${p.name} - ${p.badgesEarned} badges (${p.tier})`);
+        });
+      } else {
+        console.log('📭 No participants in leaderboard yet');
+      }
     });
 
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => {
+      console.log('🔌 Disconnecting real-time leaderboard');
+      unsubscribe();
+    };
   }, []);
-
-  // Update rankings whenever participants change
-  useEffect(() => {
-    const ranked = rankParticipants(participants);
-    setRankedParticipants(ranked);
-  }, [participants]);
 
   const handleLogout = async () => {
     try {
@@ -194,14 +212,20 @@ export function Leaderboard() {
 
   const handleParticipantAdded = async (newParticipant) => {
     try {
+      console.log('Attempting to add participant:', newParticipant);
+      
       // Check if participant already exists
       const exists = await participantExists(newParticipant.profileUrl);
+      console.log('Participant exists check:', exists);
+      
       if (exists) {
         throw new Error('This profile has already been submitted');
       }
 
       // Add to Firestore (will trigger real-time update)
-      await addParticipant(newParticipant);
+      console.log('Adding participant to database...');
+      const docId = await addParticipant(newParticipant);
+      console.log('Participant added successfully with ID:', docId);
     } catch (error) {
       console.error('Error adding participant:', error);
       throw error; // Re-throw to be handled by modal
@@ -323,6 +347,25 @@ export function Leaderboard() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
+                {/* Real-time Status Indicator */}
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium ${
+                  connectionStatus === 'connected' 
+                    ? 'bg-[#0F9D58]/10 border border-[#0F9D58]/20 text-[#0F9D58]'
+                    : connectionStatus === 'connecting'
+                    ? 'bg-[#F4B400]/10 border border-[#F4B400]/20 text-[#F4B400]'
+                    : 'bg-red-50 border border-red-200 text-red-600'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    connectionStatus === 'connected' 
+                      ? 'bg-[#0F9D58] animate-pulse'
+                      : connectionStatus === 'connecting'
+                      ? 'bg-[#F4B400] animate-spin'
+                      : 'bg-red-500'
+                  }`} />
+                  {connectionStatus === 'connected' ? 'Live' : 
+                   connectionStatus === 'connecting' ? 'Connecting...' : 'Offline'}
+                </div>
+                
                 <div className="flex items-center gap-2 px-4 py-2 bg-[#F4B400]/10 border border-[#F4B400]/20 rounded-full">
                   <Timer className="h-4 w-4 text-[#F4B400]" />
                   <span className="text-sm text-gray-700">
@@ -377,23 +420,9 @@ export function Leaderboard() {
                     </div>
                   </div>
                   <h3 className="text-xl font-bold mb-2 text-gray-900">{player.name}</h3>
-                  <div className={`flex items-center gap-2 mb-4 px-3 py-2 rounded-full ${getRankBgColor(player.rank)}`}>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${getRankBgColor(player.rank)}`}>
                     <span className="text-lg">{getRankIcon(player.rank)}</span>
                     <span className={`text-sm font-semibold ${getRankColor(player.rank)}`}>{player.rank}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="text-gray-500 text-xs mb-1 font-medium">Labs</div>
-                      <div className="font-bold text-lg text-[#4285F4]">{player.labsCompleted}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-500 text-xs mb-1 font-medium">Badges</div>
-                      <div className="font-bold text-lg text-[#0F9D58]">{player.badgesEarned}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-500 text-xs mb-1 font-medium">Rate</div>
-                      <div className="font-bold text-lg text-[#F4B400]">{player.completionRate}</div>
-                    </div>
                   </div>
                 </div>
               )

@@ -37,14 +37,26 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
     setMessage('');
 
     try {
+      console.log('🔍 Fetching profile data from URL:', url);
       const profileData = await fetchProfileData(url);
+      console.log('📊 Raw profile data received:', profileData);
+      
       const participant = toLeaderboardEntry(profileData);
       participant.profileUrl = url;
       
+      console.log('🏆 Participant data for leaderboard:', {
+        name: participant.name,
+        badgesEarned: participant.badgesEarned,
+        labsCompleted: participant.labsCompleted,
+        tier: participant.tier,
+        rankingScore: participant.rankingScore
+      });
+      
       await onParticipantAdded(participant);
       
+      setIsLoading(false); // Stop loading immediately on success
       setStatus('success');
-      setMessage(`Welcome ${profileData.name}! You've been added to the leaderboard.`);
+      setMessage(`Welcome ${profileData.name}! You've been added to the leaderboard with ${profileData.badgesEarned} badges.`);
       setUrl('');
       
       setTimeout(() => {
@@ -55,6 +67,7 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
       
     } catch (error) {
       console.error('Error submitting profile:', error);
+      setIsLoading(false); // Stop loading on error
       setStatus('error');
       
       if (error.message.includes('already been submitted')) {
@@ -64,8 +77,6 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
       } else {
         setMessage('An error occurred while adding your profile. Please try again.');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
