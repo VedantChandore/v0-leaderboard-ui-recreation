@@ -75,24 +75,6 @@ export function LoginForm() {
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
-              <Users className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-              <div className="text-xs text-gray-600 font-medium">Join 500+</div>
-              <div className="text-xs text-gray-500">Learners</div>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
-              <Award className="h-5 w-5 text-green-600 mx-auto mb-1" />
-              <div className="text-xs text-gray-600 font-medium">Earn Badges</div>
-              <div className="text-xs text-gray-500">& Certificates</div>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
-              <Trophy className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-              <div className="text-xs text-gray-600 font-medium">Compete</div>
-              <div className="text-xs text-gray-500">& Win</div>
-            </div>
-          </div>
         </div>
 
         <Card className="bg-white/90 backdrop-blur-xl border border-gray-200/80 shadow-2xl hover:shadow-3xl transition-shadow duration-300 relative overflow-hidden">
@@ -230,15 +212,7 @@ export function LoginForm() {
 
         {/* Enhanced Footer */}
         <div className="text-center mt-8 space-y-4">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm border border-gray-200/80 rounded-full shadow-lg hover:shadow-xl transition-shadow">
-            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 animate-pulse"></div>
-            <span className="text-sm text-gray-700 font-semibold">🔒 Secure Authentication</span>
-            <div className="flex gap-1">
-              <Star className="h-3 w-3 text-yellow-500" />
-              <Star className="h-3 w-3 text-yellow-500" />
-              <Star className="h-3 w-3 text-yellow-500" />
-            </div>
-          </div>
+          
           
           <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
             <span className="flex items-center gap-1">
