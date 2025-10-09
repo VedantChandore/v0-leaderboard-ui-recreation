@@ -445,9 +445,6 @@ export function Leaderboard() {
                           </Avatar>
                           <div>
                             <div className="text-base font-semibold text-gray-900">{participant.name}</div>
-                            <div className="text-sm text-gray-500">
-                              {participant.badgesEarned} badges • {participant.labsCompleted} labs
-                            </div>
                           </div>
                         </div>
                       </td>
