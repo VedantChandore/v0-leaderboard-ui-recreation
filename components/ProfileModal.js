@@ -63,6 +63,8 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
         setStatus(null);
         setMessage('');
         onClose();
+        // Refresh the page to show updated leaderboard
+        window.location.reload();
       }, 2000);
       
     } catch (error) {

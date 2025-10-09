@@ -50,6 +50,8 @@ export function ProfileSubmission({ onParticipantAdded, existingParticipants = [
       setTimeout(() => {
         setStatus(null);
         setMessage('');
+        // Refresh the page to show updated leaderboard
+        window.location.reload();
       }, 3000);
       
     } catch (error) {

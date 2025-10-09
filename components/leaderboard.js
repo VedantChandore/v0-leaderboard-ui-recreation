@@ -22,143 +22,8 @@ import {
   Calendar,
 } from "lucide-react"
 
-const topPlayers = [
-  {
-    name: "Priya Sharma",
-    avatar: "/gaming-avatar-1.png",
-    rank: "Cloud Pro",
-    labsCompleted: "45",
-    badgesEarned: "28",
-    completionRate: "93%",
-    trophy: "gold",
-  },
-  {
-    name: "Rahul Verma",
-    avatar: "/gaming-avatar-2.png",
-    rank: "Cloud Pro",
-    labsCompleted: "42",
-    badgesEarned: "26",
-    completionRate: "91%",
-    trophy: "silver",
-  },
-  {
-    name: "Ananya Desai",
-    avatar: "/gaming-avatar-3.png",
-    rank: "Cloud Explorer",
-    labsCompleted: "38",
-    badgesEarned: "24",
-    completionRate: "88%",
-    trophy: "bronze",
-  },
-]
 
-const leaderboardData = [
-  {
-    place: 4,
-    name: "Arjun Patel",
-    avatar: "/gaming-avatar-four.png",
-    labsCompleted: "35",
-    badgesEarned: "22",
-    completionRate: "85%",
-    rank: "Cloud Explorer",
-  },
-  {
-    place: 5,
-    name: "Sneha Kulkarni",
-    avatar: "/gaming-avatar-five.png",
-    labsCompleted: "32",
-    badgesEarned: "20",
-    completionRate: "82%",
-    rank: "Cloud Explorer",
-  },
-  {
-    place: 6,
-    name: "Vikram Singh",
-    avatar: "/gaming-avatar-6.png",
-    labsCompleted: "28",
-    badgesEarned: "18",
-    completionRate: "75%",
-    rank: "Cloud Explorer",
-  },
-  {
-    place: 7,
-    name: "Meera Joshi",
-    avatar: "/gaming-avatar-7.jpg",
-    labsCompleted: "25",
-    badgesEarned: "16",
-    completionRate: "71%",
-    rank: "Cloud Beginner",
-  },
-  {
-    place: 8,
-    name: "Aditya Reddy",
-    avatar: "/gaming-avatar-8.jpg",
-    labsCompleted: "22",
-    badgesEarned: "14",
-    completionRate: "68%",
-    rank: "Cloud Beginner",
-  },
-  {
-    place: 9,
-    name: "Kavya Nair",
-    avatar: "/gaming-avatar-9.jpg",
-    labsCompleted: "20",
-    badgesEarned: "12",
-    completionRate: "65%",
-    rank: "Cloud Beginner",
-  },
-  {
-    place: 10,
-    name: "Rohan Gupta",
-    avatar: "/gaming-avatar-10.jpg",
-    labsCompleted: "18",
-    badgesEarned: "11",
-    completionRate: "62%",
-    rank: "Cloud Beginner",
-  },
-  {
-    place: 11,
-    name: "Ishita Mehta",
-    avatar: "/gaming-avatar-11.jpg",
-    labsCompleted: "15",
-    badgesEarned: "9",
-    completionRate: "58%",
-    rank: "Cloud Beginner",
-  },
-  {
-    place: 12,
-    name: "Karan Malhotra",
-    avatar: "/gaming-avatar-12.jpg",
-    labsCompleted: "12",
-    badgesEarned: "7",
-    completionRate: "54%",
-    rank: "Cloud Beginner",
-  },
-]
 
-const getRankIcon = (rank) => {
-  if (rank === "Cloud Pro") return "☁️"
-  if (rank === "Cloud Explorer") return "🌥️"
-  return "🌩️"
-}
-
-const getRankColor = (rank) => {
-  const colors = {
-    "Cloud Pro": "text-[#4285F4]", // Google Blue
-    "Cloud Explorer": "text-[#0F9D58]", // Google Green
-    "Cloud Beginner": "text-[#F4B400]", // Google Yellow
-  }
-  return colors[rank] || "text-[#F4B400]"
-}
-
-const getRankBgColor = (rank) => {
-  const colors = {
-    "Cloud Pro": "bg-[#4285F4]/10 border border-[#4285F4]/20",
-    "Cloud Explorer": "bg-[#0F9D58]/10 border border-[#0F9D58]/20",
-    "Cloud Beginner": "bg-[#F4B400]/10 border border-[#F4B400]/20",
-  }
-  return colors[rank] || "bg-[#F4B400]/10 border border-[#F4B400]/20"
-}
 
 export function Leaderboard() {
   const { user, logOut } = useAuth();
@@ -167,6 +32,7 @@ export function Leaderboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Real-time leaderboard subscription
   useEffect(() => {
@@ -226,11 +92,24 @@ export function Leaderboard() {
       console.log('Adding participant to database...');
       const docId = await addParticipant(newParticipant);
       console.log('Participant added successfully with ID:', docId);
+      
+      // Refresh the page after successful addition
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error('Error adding participant:', error);
       throw error; // Re-throw to be handled by modal
     }
   };
+
+  // Filter participants based on search term
+  const filteredParticipants = rankedParticipants.filter(participant =>
+    participant.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const topThree = filteredParticipants.slice(0, 3);
+  const remaining = filteredParticipants.slice(3);
 
   const handleTrackProgress = () => {
     setIsModalOpen(true);
@@ -270,7 +149,7 @@ export function Leaderboard() {
               )}
             </div>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700">
-              <ChevronDown className="h-4 w-4" />
+              {/* <ChevronDown className="h-4 w-4" /> */}
             </Button>
           </div>
         </div>
@@ -279,7 +158,12 @@ export function Leaderboard() {
         <div className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Search participants..." className="pl-9 bg-gray-50 border-gray-200 text-sm h-10 rounded-lg focus:ring-2 focus:ring-[#4285F4] focus:border-transparent" />
+            <Input 
+              placeholder="Search participants..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-gray-50 border-gray-200 text-sm h-10 rounded-lg focus:ring-2 focus:ring-[#4285F4] focus:border-transparent" 
+            />
           </div>
         </div>
 
@@ -394,44 +278,38 @@ export function Leaderboard() {
 
           {/* Top 3 Players */}
           <div className="grid grid-cols-3 gap-6 mb-8">
-            {topPlayers.map((player, index) => {
-              const borderColors = {
-                gold: "border-t-[#F4B400] shadow-[#F4B400]/20",
-                silver: "border-t-gray-400 shadow-gray-400/20",
-                bronze: "border-t-[#DB4437] shadow-[#DB4437]/20"
-              }
+            {topThree.map((player, index) => {
+              const trophyColors = ['text-[#F4B400]', 'text-gray-400', 'text-[#DB4437]'];
+              const borderColors = ['border-t-[#F4B400]', 'border-t-gray-400', 'border-t-[#DB4437]'];
+              
               return (
-                <div key={index} className={`bg-white rounded-2xl p-6 border-t-4 ${borderColors[player.trophy]} shadow-lg hover:shadow-xl transition-shadow`}>
+                <div key={index} className={`bg-white rounded-2xl p-6 border-t-4 ${borderColors[index]} shadow-lg hover:shadow-xl transition-shadow`}>
                   <div className="flex items-start justify-between mb-4">
                     <Avatar className="h-16 w-16 ring-4 ring-white shadow-lg">
-                      <AvatarImage src={player.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={player.avatar} />
                       <AvatarFallback className="bg-gradient-to-br from-[#4285F4] to-[#0F9D58] text-white text-lg font-semibold">{player.name[0]}</AvatarFallback>
                     </Avatar>
-                    <div
-                      className={`text-3xl ${
-                        player.trophy === "gold"
-                          ? "text-[#F4B400]"
-                          : player.trophy === "silver"
-                            ? "text-gray-400"
-                            : "text-[#DB4437]"
-                      }`}
-                    >
+                    <div className={`${trophyColors[index]}`}>
                       <Trophy className="h-8 w-8" />
                     </div>
                   </div>
                   <h3 className="text-xl font-bold mb-2 text-gray-900">{player.name}</h3>
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${getRankBgColor(player.rank)}`}>
-                    <span className="text-lg">{getRankIcon(player.rank)}</span>
-                    <span className={`text-sm font-semibold ${getRankColor(player.rank)}`}>{player.rank}</span>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${getTierBgColor(player.tier)}`}>
+                    <span className="text-lg">{getTierIcon(player.tier)}</span>
+                    <span className={`text-sm font-semibold ${getTierColor(player.tier)}`}>{player.tier}</span>
+                  </div>
+                  <div className="mt-4 flex justify-between text-sm text-gray-600">
+                    <span>{player.badgesEarned} badges</span>
+                    <span>{player.labsCompleted} labs</span>
                   </div>
                 </div>
               )
             })}
           </div>
 
-          {/* Leaderboard Table */}
+          {/* Remaining Participants Table */}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-lg">
-            {rankedParticipants.length > 0 ? (
+            {remaining.length > 0 ? (
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -441,23 +319,12 @@ export function Leaderboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rankedParticipants.map((participant, index) => (
+                  {remaining.map((participant, index) => (
                     <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       {/* Place */}
                       <td className="py-6 px-6">
-                        <div className="flex items-center justify-center">
-                          {participant.place <= 3 ? (
-                            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-white ${
-                              participant.place === 1 ? 'bg-[#F4B400]' : 
-                              participant.place === 2 ? 'bg-gray-400' : 'bg-[#DB4437]'
-                            }`}>
-                              {participant.place}
-                            </div>
-                          ) : (
-                            <div className="text-lg font-bold text-gray-600">
-                              {participant.place}
-                            </div>
-                          )}
+                        <div className="text-lg font-bold text-gray-600">
+                          {participant.place}
                         </div>
                       </td>
 
@@ -472,6 +339,9 @@ export function Leaderboard() {
                           </Avatar>
                           <div>
                             <div className="text-base font-semibold text-gray-900">{participant.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {participant.badgesEarned} badges • {participant.labsCompleted} labs
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -506,15 +376,14 @@ export function Leaderboard() {
             )}
           </div>
         </div>
+        {/* Profile Modal */}
+        <ProfileModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onParticipantAdded={handleParticipantAdded}
+          existingParticipants={participants}
+        />
       </main>
-
-      {/* Profile Modal */}
-      <ProfileModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onParticipantAdded={handleParticipantAdded}
-        existingParticipants={participants}
-      />
     </div>
   )
 }
