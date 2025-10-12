@@ -12,69 +12,69 @@ let updateStatus = {
   startTime: null
 };
 
-export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get('action');
+// export async function GET(request) {
+//   try {
+//     const { searchParams } = new URL(request.url);
+//     const action = searchParams.get('action');
     
-    // If action=start, start the update process
-    if (action === 'start') {
-      // Check if update is already running
-      if (updateStatus.isRunning) {
-        return NextResponse.json({
-          success: true,
-          message: 'Update service is already running',
-          timestamp: new Date().toISOString(),
-          status: 'already-running',
-          progress: {
-            total: updateStatus.totalParticipants,
-            completed: updateStatus.completed,
-            errors: updateStatus.errors,
-            startTime: updateStatus.startTime
-          }
-        });
-      }
+//     // If action=start, start the update process
+//     if (action === 'start') {
+//       // Check if update is already running
+//       if (updateStatus.isRunning) {
+//         return NextResponse.json({
+//           success: true,
+//           message: 'Update service is already running',
+//           timestamp: new Date().toISOString(),
+//           status: 'already-running',
+//           progress: {
+//             total: updateStatus.totalParticipants,
+//             completed: updateStatus.completed,
+//             errors: updateStatus.errors,
+//             startTime: updateStatus.startTime
+//           }
+//         });
+//       }
 
-      // Run background update process using Promise.resolve().then() instead of setImmediate
-      Promise.resolve().then(() => {
-        runBackgroundUpdate().catch(error => {
-          console.error('❌ Background update failed:', error);
-          updateStatus.isRunning = false;
-        });
-      });
+//       // Run background update process using Promise.resolve().then() instead of setImmediate
+//       Promise.resolve().then(() => {
+//         runBackgroundUpdate().catch(error => {
+//           console.error('❌ Background update failed:', error);
+//           updateStatus.isRunning = false;
+//         });
+//       });
 
-      // Immediately return response to avoid timeout
-      return NextResponse.json({
-        success: true,
-        message: 'Background update service started',
-        timestamp: new Date().toISOString(),
-        status: 'starting'
-      });
-    }
+//       // Immediately return response to avoid timeout
+//       return NextResponse.json({
+//         success: true,
+//         message: 'Background update service started',
+//         timestamp: new Date().toISOString(),
+//         status: 'starting'
+//       });
+//     }
     
-    // Default: Return current status
-    const participants = await getAllParticipants();
+//     // Default: Return current status
+//     const participants = await getAllParticipants();
     
-    return NextResponse.json({
-      success: true,
-      status: updateStatus,
-      participantCount: participants.length,
-      lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
-      timestamp: new Date().toISOString()
-    });
+//     return NextResponse.json({
+//       success: true,
+//       status: updateStatus,
+//       participantCount: participants.length,
+//       lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
+//       timestamp: new Date().toISOString()
+//     });
 
-  } catch (error) {
-    console.error('Error in update service:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to process request',
-      message: error.message 
-    }, { status: 500 });
-  }
-}
+//   } catch (error) {
+//     console.error('Error in update service:', error);
+//     return NextResponse.json({ 
+//       success: false, 
+//       error: 'Failed to process request',
+//       message: error.message 
+//     }, { status: 500 });
+//   }
+// }
 
 // Keep POST for backwards compatibility
-export async function POST(request) {
+export async function GET(request) {
   try {
     // Check if update is already running
     if (updateStatus.isRunning) {
