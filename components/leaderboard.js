@@ -398,8 +398,8 @@ export function Leaderboard() {
                             <div className="text-xs text-blue-600 font-medium">Badges</div>
                           </div>
                           <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-                            <div className="text-2xl font-bold text-green-700">{participant.labsCompleted}</div>
-                            <div className="text-xs text-green-600 font-medium">Labs</div>
+                            <div className="text-2xl font-bold text-green-700">{participant.points}</div>
+                            <div className="text-xs text-green-600 font-medium">Points</div>
                           </div>
                         </div>
                       </div>
@@ -468,7 +468,7 @@ export function Leaderboard() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Target className="h-3 w-3" />
-                                  {participant.labsCompleted} labs
+                                  {participant.points} points
                                 </span>
                               </div>
                             </div>
