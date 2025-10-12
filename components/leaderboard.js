@@ -7,7 +7,7 @@ import { Input } from "./ui/input"
 import { useAuth } from "../contexts/AuthContext"
 import { ProfileModal } from "./ProfileModal"
 import { rankParticipants, getTierColor, getTierBgColor, getTierIcon } from "../lib/leaderboardManager"
-import { subscribeToLeaderboard, participantExists, addParticipant } from "../lib/leaderboardDB"
+import { subscribeToLeaderboard, getExistingParticipant, addParticipant, updateParticipantProgress } from "../lib/leaderboardDB"
 import {
   Search,
   Users,
@@ -76,29 +76,40 @@ export function Leaderboard() {
     }
   };
 
-  const handleParticipantAdded = async (newParticipant) => {
+  const handleAddParticipant = async (newParticipant) => {
     try {
-      console.log('Attempting to add participant:', newParticipant);
+      console.log('Attempting to add/update participant:', newParticipant);
       
       // Check if participant already exists
-      const exists = await participantExists(newParticipant.profileUrl);
-      console.log('Participant exists check:', exists);
+      const existingParticipant = await getExistingParticipant(newParticipant.profileUrl);
+      console.log('Existing participant check:', existingParticipant);
       
-      if (exists) {
-        throw new Error('This profile has already been submitted');
+      if (existingParticipant) {
+        // Update existing participant with new progress
+        console.log('Updating existing participant progress...');
+        const updatedParticipant = await updateParticipantProgress(existingParticipant, newParticipant);
+        console.log('Participant progress updated successfully:', updatedParticipant.progressInfo);
+        
+        // Return progress info for UI feedback
+        return {
+          isUpdate: true,
+          progressInfo: updatedParticipant.progressInfo,
+          participant: updatedParticipant
+        };
+      } else {
+        // Add new participant to Firestore
+        console.log('Adding new participant to database...');
+        const docId = await addParticipant(newParticipant);
+        console.log('New participant added successfully with ID:', docId);
+        
+        return {
+          isUpdate: false,
+          docId: docId,
+          participant: newParticipant
+        };
       }
-
-      // Add to Firestore (will trigger real-time update)
-      console.log('Adding participant to database...');
-      const docId = await addParticipant(newParticipant);
-      console.log('Participant added successfully with ID:', docId);
-      
-      // Refresh the page after successful addition
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
     } catch (error) {
-      console.error('Error adding participant:', error);
+      console.error('Error adding/updating participant:', error);
       throw error; // Re-throw to be handled by modal
     }
   };
@@ -502,7 +513,7 @@ export function Leaderboard() {
         <ProfileModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onParticipantAdded={handleParticipantAdded}
+          onParticipantAdded={handleAddParticipant}
           existingParticipants={participants}
         />
       </main>
