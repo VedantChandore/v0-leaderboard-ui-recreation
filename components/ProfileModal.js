@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { X, Link, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Link, Loader2, CheckCircle, AlertCircle, TrendingUp, Award, Zap } from 'lucide-react';
 import { fetchProfileData, isValidProfileUrl, toLeaderboardEntry } from '../lib/profileParser';
 import { canAddParticipant } from '../lib/leaderboardManager';
 
@@ -26,11 +26,7 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
       return;
     }
 
-    if (!canAddParticipant(existingParticipants, url)) {
-      setStatus('error');
-      setMessage('This profile has already been submitted');
-      return;
-    }
+    // Remove duplicate check - now handled in backend with progress updates
 
     setIsLoading(true);
     setStatus(null);
@@ -52,11 +48,38 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
         rankingScore: participant.rankingScore
       });
       
-      await onParticipantAdded(participant);
+      const result = await onParticipantAdded(participant);
       
       setIsLoading(false); // Stop loading immediately on success
       setStatus('success');
-      setMessage(`Welcome ${profileData.name}! You've been added to the leaderboard with ${profileData.badgesEarned} badges.`);
+      
+      if (result.isUpdate) {
+        // Show progress update message
+        const { progressInfo } = result;
+        let progressMessage = `Progress updated for ${profileData.name}! `;
+        
+        if (progressInfo.hasProgress) {
+          const updates = [];
+          if (progressInfo.badgeProgress > 0) {
+            updates.push(`+${progressInfo.badgeProgress} badges`);
+          }
+          if (progressInfo.pointProgress > 0) {
+            updates.push(`+${progressInfo.pointProgress} points`);
+          }
+          if (progressInfo.labProgress > 0) {
+            updates.push(`+${progressInfo.labProgress} labs`);
+          }
+          progressMessage += `New: ${updates.join(', ')}`;
+        } else {
+          progressMessage += 'No new progress since last update.';
+        }
+        
+        setMessage(progressMessage);
+      } else {
+        // Show welcome message for new user
+        setMessage(`Welcome ${profileData.name}! You've been added to the leaderboard with ${profileData.badgesEarned} badges.`);
+      }
+      
       setUrl('');
       
       setTimeout(() => {
@@ -65,19 +88,21 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
         onClose();
         // Refresh the page to show updated leaderboard
         window.location.reload();
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       console.error('Error submitting profile:', error);
       setIsLoading(false); // Stop loading on error
       setStatus('error');
       
-      if (error.message.includes('already been submitted')) {
-        setMessage('This profile has already been submitted to the leaderboard.');
-      } else if (error.message.includes('Failed to fetch')) {
+      if (error.message.includes('Failed to fetch')) {
         setMessage('Failed to fetch your profile. Please check the URL and try again.');
+      } else if (error.message.includes('Missing participant ID')) {
+        setMessage('Database error: Unable to identify participant. Please try again.');
+      } else if (error.message.includes('permission-denied')) {
+        setMessage('Database access denied. Please check your connection and try again.');
       } else {
-        setMessage('An error occurred while adding your profile. Please try again.');
+        setMessage(`Error: ${error.message || 'An error occurred while processing your profile. Please try again.'}`);
       }
     }
   };
@@ -104,7 +129,7 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Track Your Progress</h2>
-            <p className="text-sm text-gray-600">Submit your Google Cloud Skills Boost profile</p>
+            <p className="text-sm text-gray-600">Submit your profile daily to track progress</p>
           </div>
           <Button 
             variant="ghost" 
@@ -143,7 +168,11 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
                 : 'bg-[#DB4437]/10 border border-[#DB4437]/20 text-[#DB4437]'
             }`}>
               {status === 'success' ? (
-                <CheckCircle className="h-5 w-5" />
+                message.includes('Progress updated') ? (
+                  <TrendingUp className="h-5 w-5" />
+                ) : (
+                  <CheckCircle className="h-5 w-5" />
+                )
               ) : (
                 <AlertCircle className="h-5 w-5" />
               )}
@@ -152,6 +181,8 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
           )}
 
           <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">📈 Daily Progress Tracking:</h4>
+            <p className="text-xs text-gray-600 mb-3">Submit your profile URL daily to track new badges, points, and labs!</p>
             <h4 className="text-sm font-semibold text-gray-700 mb-2">How to find your profile URL:</h4>
             <ol className="text-xs text-gray-600 space-y-1">
               <li>1. Go to <span className="font-mono bg-white px-1 rounded">cloudskillsboost.google</span></li>
@@ -180,7 +211,7 @@ export function ProfileModal({ isOpen, onClose, onParticipantAdded, existingPart
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              'Submit Profile'
+              'Track Progress'
             )}
           </Button>
         </div>
