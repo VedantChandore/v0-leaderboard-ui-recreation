@@ -7,6 +7,7 @@ import { Input } from "./ui/input"
 import { useAuth } from "../contexts/AuthContext"
 import { ProfileModal } from "./ProfileModal"
 import { FAQ } from "./FAQ"
+import { HowToGuide } from "./HowToGuide"
 import { rankParticipants, getTierColor, getTierBgColor, getTierIcon } from "../lib/leaderboardManager"
 import { subscribeToLeaderboard, getExistingParticipant, addParticipant, updateParticipantProgress } from "../lib/leaderboardDB"
 import {
@@ -23,7 +24,8 @@ import {
   Target,
   Menu,
   X,
-  HelpCircle
+  HelpCircle,
+  Play
 } from "lucide-react"
 
 export function Leaderboard() {
@@ -35,7 +37,7 @@ export function Leaderboard() {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('leaderboard'); // 'leaderboard' or 'faq'
+  const [currentView, setCurrentView] = useState('leaderboard'); // 'leaderboard', 'faq', or 'howto'
 
   // Real-time leaderboard subscription
   useEffect(() => {
@@ -216,6 +218,23 @@ export function Leaderboard() {
             </div>
             <p className={`text-sm ${currentView === 'leaderboard' ? 'text-blue-100' : 'text-gray-500'}`}>
               Track your progress and compete!
+            </p>
+          </button>
+
+          <button
+            onClick={() => setCurrentView('howto')}
+            className={`w-full p-4 rounded-xl shadow-lg transition-all duration-200 ${
+              currentView === 'howto' 
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' 
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <Play className="h-5 w-5" />
+              <span className="font-semibold">How to Join</span>
+            </div>
+            <p className={`text-sm ${currentView === 'howto' ? 'text-blue-100' : 'text-gray-500'}`}>
+              Step-by-step guide to join leaderboard
             </p>
           </button>
 
@@ -543,8 +562,10 @@ export function Leaderboard() {
             ) : null}
           </div>
           </div>
-        ) : (
+        ) : currentView === 'faq' ? (
           <FAQ />
+        ) : (
+          <HowToGuide />
         )}
 
         {/* Profile Modal */}
