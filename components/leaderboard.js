@@ -6,6 +6,7 @@ import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { useAuth } from "../contexts/AuthContext"
 import { ProfileModal } from "./ProfileModal"
+import { FAQ } from "./FAQ"
 import { rankParticipants, getTierColor, getTierBgColor, getTierIcon } from "../lib/leaderboardManager"
 import { subscribeToLeaderboard, getExistingParticipant, addParticipant, updateParticipantProgress } from "../lib/leaderboardDB"
 import {
@@ -21,7 +22,8 @@ import {
   Medal,
   Target,
   Menu,
-  X
+  X,
+  HelpCircle
 } from "lucide-react"
 
 export function Leaderboard() {
@@ -33,6 +35,7 @@ export function Leaderboard() {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentView, setCurrentView] = useState('leaderboard'); // 'leaderboard' or 'faq'
 
   // Real-time leaderboard subscription
   useEffect(() => {
@@ -199,13 +202,39 @@ export function Leaderboard() {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2 py-4 overflow-y-auto">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-xl shadow-lg">
+          <button
+            onClick={() => setCurrentView('leaderboard')}
+            className={`w-full p-4 rounded-xl shadow-lg transition-all duration-200 ${
+              currentView === 'leaderboard' 
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' 
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <Trophy className="h-5 w-5" />
               <span className="font-semibold">Leaderboard</span>
             </div>
-            <p className="text-blue-100 text-sm">Track your progress and compete!</p>
-          </div>
+            <p className={`text-sm ${currentView === 'leaderboard' ? 'text-blue-100' : 'text-gray-500'}`}>
+              Track your progress and compete!
+            </p>
+          </button>
+
+          <button
+            onClick={() => setCurrentView('faq')}
+            className={`w-full p-4 rounded-xl shadow-lg transition-all duration-200 ${
+              currentView === 'faq' 
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' 
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <HelpCircle className="h-5 w-5" />
+              <span className="font-semibold">FAQs</span>
+            </div>
+            <p className={`text-sm ${currentView === 'faq' ? 'text-blue-100' : 'text-gray-500'}`}>
+              Get answers to common questions
+            </p>
+          </button>
       
         </nav>
         {/* Quick Stats */}
@@ -283,24 +312,26 @@ export function Leaderboard() {
               </div>
               
               <div className="flex flex-wrap items-center gap-3">
-                {/* Status Indicator */}
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border shadow-sm ${
-                  connectionStatus === 'connected' 
-                    ? 'bg-green-50 border-green-200 text-green-700'
-                    : connectionStatus === 'connecting'
-                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                    : 'bg-red-50 border-red-200 text-red-700'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${
+                {/* Status Indicator - Only show on leaderboard */}
+                {currentView === 'leaderboard' && (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border shadow-sm ${
                     connectionStatus === 'connected' 
-                      ? 'bg-green-500 animate-pulse'
+                      ? 'bg-green-50 border-green-200 text-green-700'
                       : connectionStatus === 'connecting'
-                      ? 'bg-amber-500 animate-spin'
-                      : 'bg-red-500'
-                  }`} />
-                  {connectionStatus === 'connected' ? 'Live Updates' : 
-                   connectionStatus === 'connecting' ? 'Connecting...' : 'Offline'}
-                </div>
+                      ? 'bg-amber-50 border-amber-200 text-amber-700'
+                      : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      connectionStatus === 'connected' 
+                        ? 'bg-green-500 animate-pulse'
+                        : connectionStatus === 'connecting'
+                        ? 'bg-amber-500 animate-spin'
+                        : 'bg-red-500'
+                    }`} />
+                    {connectionStatus === 'connected' ? 'Live Updates' : 
+                     connectionStatus === 'connecting' ? 'Connecting...' : 'Offline'}
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
                   <Timer className="h-4 w-4 text-amber-600" />
@@ -310,20 +341,24 @@ export function Leaderboard() {
                   <span className="text-sm text-gray-700 sm:hidden font-semibold text-amber-700">31st Oct</span>
                 </div>
                 
-                <Button 
-                  onClick={handleTrackProgress}
-                  className="h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl px-4 lg:px-6 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Target className="h-4 w-4 mr-2" />
-                  Track Progress
-                </Button>
+                {/* Track Progress button - Only show on leaderboard */}
+                {currentView === 'leaderboard' && (
+                  <Button 
+                    onClick={handleTrackProgress}
+                    className="h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl px-4 lg:px-6 shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    <Target className="h-4 w-4 mr-2" />
+                    Track Progress
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </header>
 
         {/* Enhanced Content */}
-        <div className="p-4 lg:p-8">
+        {currentView === 'leaderboard' ? (
+          <div className="p-4 lg:p-8">
           {/* Top 3 Podium - Enhanced */}
           {topThree.length > 0 && (
             <div className="mb-8">
@@ -507,7 +542,10 @@ export function Leaderboard() {
               </div>
             ) : null}
           </div>
-        </div>
+          </div>
+        ) : (
+          <FAQ />
+        )}
 
         {/* Profile Modal */}
         <ProfileModal 
