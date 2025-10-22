@@ -26,11 +26,22 @@ export function ProfileImporter({ onProfileAdded, existingProfiles = [] }) {
       return;
     }
 
-    // Check if profile already exists
-    const isDuplicate = existingProfiles.some(profile => 
-      profile.profileUrl === url || 
-      profile.profileUrl?.includes(url.split('/public_profiles/')[1]?.split('?')[0])
-    );
+    // Extract profile ID for robust duplicate checking
+    const extractProfileId = (profileUrl) => {
+      try {
+        const regex = /\/public_profiles\/([a-zA-Z0-9-]+)/;
+        const match = profileUrl.match(regex);
+        return match ? match[1] : null;
+      } catch (error) {
+        return null;
+      }
+    };
+
+    const newProfileId = extractProfileId(url);
+    const isDuplicate = newProfileId && existingProfiles.some(profile => {
+      const existingProfileId = extractProfileId(profile.profileUrl || '');
+      return existingProfileId === newProfileId;
+    });
 
     if (isDuplicate) {
       setStatus('error');
