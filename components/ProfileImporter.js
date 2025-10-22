@@ -106,7 +106,7 @@ export function ProfileImporter({ onProfileAdded, existingProfiles = [] }) {
           <div className="flex gap-3">
             <Input
               type="url"
-              placeholder="https://www.cloudskillsboost.google/public_profiles/..."
+              placeholder="https://www.skills.google/public_profiles/..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -144,7 +144,7 @@ export function ProfileImporter({ onProfileAdded, existingProfiles = [] }) {
 
         <div className="flex items-center justify-between pt-2">
           <div className="text-xs text-gray-500">
-            Example: https://www.cloudskillsboost.google/public_profiles/63c7f314-f489-4472-bd96-1380452a79d6
+            Example: https://www.skills.google/public_profiles/c341f338-94be-42d8-9fc8-460695c15e34
           </div>
           <Button
             variant="ghost"

@@ -30,7 +30,7 @@ const faqData = [
     answer: (
       <div className="space-y-3">
         <ol className="list-decimal list-inside space-y-2 text-gray-700">
-          <li>Go to <a href="https://cloudskillsboost.google" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1">cloudskillsboost.google <ExternalLink className="h-3 w-3" /></a></li>
+          <li>Go to <a href="https://skills.google" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1">skills.google <ExternalLink className="h-3 w-3" /></a></li>
           <li>Sign in with the same account you used for enrollment</li>
           <li>Click on your profile icon → "Profile"</li>
           <li>Make sure your profile is public, then copy the URL from your browser</li>
@@ -65,7 +65,7 @@ const faqData = [
       <div className="space-y-3">
         <ul className="list-disc list-inside space-y-2 text-gray-700">
           <li>Wait 20–30 minutes and refresh the page</li>
-          <li>Check again at <a href="https://cloudskillsboost.google/my_account/credits" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1">cloudskillsboost.google/my_account/credits <ExternalLink className="h-3 w-3" /></a></li>
+          <li>Check again at <a href="https://skills.google/my_account/credits" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1">skills.google/my_account/credits <ExternalLink className="h-3 w-3" /></a></li>
           <li>If you still don't see them, contact <a href="mailto:gdgocsupport@google.com" className="text-blue-600 hover:text-blue-800 underline">gdgocsupport@google.com</a> (and please be patient — it may take 48–72 hours for a reply)</li>
         </ul>
       </div>
@@ -166,7 +166,7 @@ const faqData = [
     question: "How do I access the Gen AI Arcade Game?",
     answer: (
       <div className="space-y-3">
-        <p className="text-gray-700">Go to <a href="https://cloudskillsboost.google" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1">cloudskillsboost.google <ExternalLink className="h-3 w-3" /></a> and enter this access code:</p>
+        <p className="text-gray-700">Go to <a href="https://skills.google" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1">skills.google <ExternalLink className="h-3 w-3" /></a> and enter this access code:</p>
         <div className="bg-gray-100 p-3 rounded-lg">
           <code className="text-gray-800 font-mono">1q-genai-10091</code>
         </div>

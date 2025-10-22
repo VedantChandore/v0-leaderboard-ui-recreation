@@ -91,7 +91,7 @@ export function ProfileSubmission({ onParticipantAdded, existingParticipants = [
               <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="url"
-                placeholder="https://www.cloudskillsboost.google/public_profiles/your-profile-id"
+                placeholder="https://www.skills.google/public_profiles/your-profile-id"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -131,7 +131,7 @@ export function ProfileSubmission({ onParticipantAdded, existingParticipants = [
         <div className="bg-gray-50 rounded-lg p-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">How to find your profile URL:</h4>
           <ol className="text-xs text-gray-600 space-y-1">
-            <li>1. Go to <span className="font-mono bg-white px-1 rounded">cloudskillsboost.google</span></li>
+            <li>1. Go to <span className="font-mono bg-white px-1 rounded">skills.google</span></li>
             <li>2. Sign in and go to your profile</li>
             <li>3. Make sure your profile is public</li>
             <li>4. Copy the URL from your browser</li>

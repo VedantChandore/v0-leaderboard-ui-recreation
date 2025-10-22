@@ -23,7 +23,7 @@ const steps = [
     image: "/images/step1-profile.jpg",
     caption: "Click on your profile icon in the top right corner to access your account settings and profile information. You can see your credits, dashboard, progress, and other options in the dropdown menu.",
     instructions: [
-      "Go to cloudskillsboost.google",
+      "Go to skills.google",
       "Sign in with your Google account",
       "Click on your profile icon in the top right",
       "Select 'Profile' from the dropdown menu"
@@ -295,7 +295,7 @@ export function HowToGuide() {
             <Button 
               variant="outline" 
               className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl px-6 py-3"
-              onClick={() => window.open('https://cloudskillsboost.google', '_blank')}
+              onClick={() => window.open('https://skills.google', '_blank')}
             >
               <Globe className="h-4 w-4 mr-2" />
               Go to Skills Boost

@@ -9,8 +9,9 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Profile URL is required' }, { status: 400 });
     }
 
-    // Validate the URL is from Google Cloud Skills Boost
-    if (!profileUrl.includes('cloudskillsboost.google') || !profileUrl.includes('/public_profiles/')) {
+    // Validate the URL is from Google Cloud Skills Boost (support both old and new domains)
+    const isValidDomain = profileUrl.includes('cloudskillsboost.google') || profileUrl.includes('skills.google');
+    if (!isValidDomain || !profileUrl.includes('/public_profiles/')) {
       return NextResponse.json({ error: 'Invalid Google Cloud Skills Boost profile URL' }, { status: 400 });
     }
 
