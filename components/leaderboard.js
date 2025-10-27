@@ -361,7 +361,7 @@ export function Leaderboard() {
                 </div>
                 
                 {/* Track Progress button - Only show on leaderboard */}
-                {currentView === 'leaderboard' && (
+                {/* {currentView === 'leaderboard' && (
                   <Button 
                     onClick={handleTrackProgress}
                     className="h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl px-4 lg:px-6 shadow-lg hover:shadow-xl transition-all duration-200"
@@ -369,7 +369,7 @@ export function Leaderboard() {
                     <Target className="h-4 w-4 mr-2" />
                     Track Progress
                   </Button>
-                )}
+                )} */}
               </div>
             </div>
           </div>
