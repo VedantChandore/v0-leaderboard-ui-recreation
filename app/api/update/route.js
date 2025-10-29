@@ -218,55 +218,55 @@ async function runBackgroundUpdate() {
     const participants = await getAllParticipants();
     console.log(`👥 Found ${participants.length} participants to update`);
 
-    updateStatus.totalParticipants = participants.length;
+    // updateStatus.totalParticipants = participants.length;
 
-    if (participants.length === 0) {
-      console.log('📭 No participants found, update complete');
-      updateStatus.isRunning = false;
-      return;
-    }
+    // if (participants.length === 0) {
+    //   console.log('📭 No participants found, update complete');
+    //   updateStatus.isRunning = false;
+    //   return;
+    // }
 
-    // Reduce batch size for Vercel's serverless environment
-    const BATCH_SIZE = 3; // Smaller batch size for better reliability on Vercel
-    const batches = [];
+    // // Reduce batch size for Vercel's serverless environment
+    // const BATCH_SIZE = 3; // Smaller batch size for better reliability on Vercel
+    // const batches = [];
     
-    for (let i = 0; i < participants.length; i += BATCH_SIZE) {
-      batches.push(participants.slice(i, i + BATCH_SIZE));
-    }
+    // for (let i = 0; i < participants.length; i += BATCH_SIZE) {
+    //   batches.push(participants.slice(i, i + BATCH_SIZE));
+    // }
 
-    console.log(`⚡ Processing ${batches.length} batches of ${BATCH_SIZE} participants each...`);
+    // console.log(`⚡ Processing ${batches.length} batches of ${BATCH_SIZE} participants each...`);
 
-    // Process batches sequentially, but participants within each batch in parallel
-    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-      const batch = batches[batchIndex];
-      console.log(`🔄 Processing batch ${batchIndex + 1}/${batches.length}...`);
+    // // Process batches sequentially, but participants within each batch in parallel
+    // for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    //   const batch = batches[batchIndex];
+    //   console.log(`🔄 Processing batch ${batchIndex + 1}/${batches.length}...`);
 
-      const batchPromises = batch.map((participant, index) =>
-        updateParticipantData(participant, (batchIndex * BATCH_SIZE) + index + 1)
-          .then(result => {
-            updateStatus.completed++;
-            return result;
-          })
-          .catch(error => {
-            updateStatus.errors++;
-            return { status: 'failed', participant: participant.name, error: error.message };
-          })
-      );
+    //   const batchPromises = batch.map((participant, index) =>
+    //     updateParticipantData(participant, (batchIndex * BATCH_SIZE) + index + 1)
+    //       .then(result => {
+    //         updateStatus.completed++;
+    //         return result;
+    //       })
+    //       .catch(error => {
+    //         updateStatus.errors++;
+    //         return { status: 'failed', participant: participant.name, error: error.message };
+    //       })
+    //   );
 
-      // Wait for current batch to complete before starting next
-      await Promise.allSettled(batchPromises);
+    //   // Wait for current batch to complete before starting next
+    //   await Promise.allSettled(batchPromises);
       
-      // Small delay between batches to be respectful to the API and Vercel limits
-      if (batchIndex < batches.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay for Vercel
-      }
-    }
+    //   // Small delay between batches to be respectful to the API and Vercel limits
+    //   if (batchIndex < batches.length - 1) {
+    //     await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay for Vercel
+    //   }
+    // }
 
-    const endTime = Date.now();
-    const duration = (endTime - startTime) / 1000;
+    // const endTime = Date.now();
+    // const duration = (endTime - startTime) / 1000;
 
-    updateStatus.lastUpdate = new Date().toISOString();
-    updateStatus.isRunning = false;
+    // updateStatus.lastUpdate = new Date().toISOString();
+    // updateStatus.isRunning = false;
 
     console.log('✅ Background update completed!');
     console.log(`📈 Results: ${updateStatus.completed}/${participants.length} successful, ${updateStatus.errors} errors`);

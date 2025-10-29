@@ -551,13 +551,13 @@ export function Leaderboard() {
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
                   Be the first to join our StudyJams leaderboard and showcase your Google Cloud skills!
                 </p>
-                <Button 
+                {/* <Button 
                   onClick={handleTrackProgress}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Get Started
-                </Button>
+                </Button> */}
               </div>
             ) : null}
           </div>
