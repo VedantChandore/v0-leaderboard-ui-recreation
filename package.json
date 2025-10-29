@@ -63,13 +63,15 @@
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
   },
-  "name": "my-v0-project",
-  "version": "0.1.0",
-  "private": true,
+  "name": "v0-leaderboard-ui-recreation",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Leaderboard UI recreation with Firebase backend",
+  "main": "index.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "migrate": "node ./migration/migrate-from-excel.js"
   }
 }

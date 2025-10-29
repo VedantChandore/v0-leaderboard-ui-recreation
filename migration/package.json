@@ -1,0 +1,11 @@
+{
+  "name": "leaderboard-migration",
+  "version": "1.0.0",
+  "description": "Migration scripts for leaderboard data",
+  "type": "module",
+  "scripts": {
+    "migrate": "node migrate-from-excel.js",
+    "test-migrate": "node migrate-to-test-collection.js"
+  },
+  "dependencies": {}
+}

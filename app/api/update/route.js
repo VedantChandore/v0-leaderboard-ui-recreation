@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllParticipants, updateParticipant } from '../../../lib/leaderboardDB';
-import { fetchProfileData } from '../../../lib/profileParser';
+
+// Add error handling for imports
+let getAllParticipants, updateParticipant, fetchProfileData, deleteParticipant;
+
+try {
+  const leaderboardDB = await import('../../../lib/leaderboardDB');
+  getAllParticipants = leaderboardDB.getAllParticipants;
+  updateParticipant = leaderboardDB.updateParticipant;
+  deleteParticipant = leaderboardDB.deleteParticipant; // Add delete function
+  
+  const profileParser = await import('../../../lib/profileParser');
+  fetchProfileData = profileParser.fetchProfileData;
+} catch (error) {
+  console.error('Failed to import required modules:', error);
+}
 
 // Simple in-memory status tracking
 let updateStatus = {
@@ -9,73 +22,18 @@ let updateStatus = {
   totalParticipants: 0,
   completed: 0,
   errors: 0,
-  startTime: null
+  startTime: null,
+  duplicatesRemoved: 0 // Track removed duplicates
 };
-
-// export async function GET(request) {
-//   try {
-//     const { searchParams } = new URL(request.url);
-//     const action = searchParams.get('action');
-    
-//     // If action=start, start the update process
-//     if (action === 'start') {
-//       // Check if update is already running
-//       if (updateStatus.isRunning) {
-//         return NextResponse.json({
-//           success: true,
-//           message: 'Update service is already running',
-//           timestamp: new Date().toISOString(),
-//           status: 'already-running',
-//           progress: {
-//             total: updateStatus.totalParticipants,
-//             completed: updateStatus.completed,
-//             errors: updateStatus.errors,
-//             startTime: updateStatus.startTime
-//           }
-//         });
-//       }
-
-//       // Run background update process using Promise.resolve().then() instead of setImmediate
-//       Promise.resolve().then(() => {
-//         runBackgroundUpdate().catch(error => {
-//           console.error('❌ Background update failed:', error);
-//           updateStatus.isRunning = false;
-//         });
-//       });
-
-//       // Immediately return response to avoid timeout
-//       return NextResponse.json({
-//         success: true,
-//         message: 'Background update service started',
-//         timestamp: new Date().toISOString(),
-//         status: 'starting'
-//       });
-//     }
-    
-//     // Default: Return current status
-//     const participants = await getAllParticipants();
-    
-//     return NextResponse.json({
-//       success: true,
-//       status: updateStatus,
-//       participantCount: participants.length,
-//       lastUpdated: participants.length > 0 ? participants[0].updatedAt : null,
-//       timestamp: new Date().toISOString()
-//     });
-
-//   } catch (error) {
-//     console.error('Error in update service:', error);
-//     return NextResponse.json({ 
-//       success: false, 
-//       error: 'Failed to process request',
-//       message: error.message 
-//     }, { status: 500 });
-//   }
-// }
 
 // Keep POST for backwards compatibility
 export async function GET(request) {
   try {
+    // Check if required functions are available
+    if (!getAllParticipants || !updateParticipant || !fetchProfileData) {
+      throw new Error('Required database or profile functions are not available');
+    }
+
     // Check if update is already running
     if (updateStatus.isRunning) {
       return NextResponse.json({
@@ -89,7 +47,7 @@ export async function GET(request) {
           errors: updateStatus.errors,
           startTime: updateStatus.startTime
         }
-      });
+      }); 
     }
 
     // Run background update process
@@ -119,10 +77,129 @@ export async function GET(request) {
 }
 
 /**
+ * Find and remove duplicate participants with exact same names, keeping the one with highest points and badges
+ */
+async function removeDuplicateParticipants() {
+  console.log('🔍 Checking for duplicate participants...');
+  
+  if (!getAllParticipants || !deleteParticipant) {
+    console.log('⚠️ Required functions not available for duplicate removal');
+    return;
+  }
+  
+  try {
+    const participants = await getAllParticipants();
+    const nameGroups = new Map();
+    const unknownUsers = [];
+    
+    // Group participants by exact name and handle Unknown Users separately
+    for (const participant of participants) {
+      const name = participant.name.trim();
+      
+      // Handle "Unknown User" separately
+      if (name.toLowerCase() === 'unknown user') {
+        unknownUsers.push(participant);
+        continue;
+      }
+      
+      if (!nameGroups.has(name)) {
+        nameGroups.set(name, []);
+      }
+      nameGroups.get(name).push(participant);
+    }
+    
+    // Handle Unknown Users - group by badges and points
+    if (unknownUsers.length > 1) {
+      console.log(`🔍 Found ${unknownUsers.length} Unknown Users, checking for identical stats...`);
+      
+      const unknownGroups = new Map();
+      for (const user of unknownUsers) {
+        const key = `${user.badgesEarned || 0}-${user.points || 0}`;
+        if (!unknownGroups.has(key)) {
+          unknownGroups.set(key, []);
+        }
+        unknownGroups.get(key).push(user);
+      }
+      
+      // Remove duplicates with same badges and points, keep one
+      for (const [key, group] of unknownGroups) {
+        if (group.length > 1) {
+          console.log(`\n👥 Processing Unknown User duplicates with same stats (${group.length} participants):`);
+          group.forEach(p => console.log(`   - ${p.name} (Points: ${p.points || 0}, Badges: ${p.badgesEarned || 0})`));
+          
+          // Keep the first one, remove the rest
+          const toRemove = group.slice(1);
+          for (const participant of toRemove) {
+            try {
+              await deleteParticipant(participant.id);
+              updateStatus.duplicatesRemoved++;
+              console.log(`🗑️ Removed duplicate Unknown User: (ID: ${participant.id}, Points: ${participant.points || 0}, Badges: ${participant.badgesEarned || 0})`);
+            } catch (error) {
+              console.error(`❌ Failed to remove Unknown User:`, error.message);
+            }
+          }
+        }
+      }
+    }
+    
+    // Find groups with duplicates for named participants
+    const duplicateGroups = Array.from(nameGroups.values()).filter(group => group.length > 1);
+    
+    if (duplicateGroups.length === 0) {
+      console.log('✅ No duplicate named participants found');
+    } else {
+      console.log(`🔍 Found ${duplicateGroups.length} groups of duplicate named participants`);
+      
+      // Process each group of duplicates
+      for (const group of duplicateGroups) {
+        console.log(`\n👥 Processing duplicate group (${group.length} participants):`);
+        group.forEach(p => console.log(`   - ${p.name} (Points: ${p.points || 0}, Badges: ${p.badgesEarned || 0})`));
+        
+        // Find the participant with highest points and badges
+        let bestParticipant = group[0];
+        for (const participant of group) {
+          const currentScore = (participant.points || 0) + (participant.badgesEarned || 0) * 10;
+          const bestScore = (bestParticipant.points || 0) + (bestParticipant.badgesEarned || 0) * 10;
+          
+          if (currentScore > bestScore) {
+            bestParticipant = participant;
+          }
+        }
+        
+        console.log(`🏆 Keeping: ${bestParticipant.name} (Points: ${bestParticipant.points || 0}, Badges: ${bestParticipant.badgesEarned || 0})`);
+        
+        // Remove the duplicates
+        const toRemove = group.filter(p => p.id !== bestParticipant.id);
+        for (const participant of toRemove) {
+          try {
+            await deleteParticipant(participant.id);
+            updateStatus.duplicatesRemoved++;
+            console.log(`🗑️ Removed: ${participant.name} (ID: ${participant.id})`);
+          } catch (error) {
+            console.error(`❌ Failed to remove ${participant.name}:`, error.message);
+          }
+        }
+      }
+    }
+    
+    console.log(`✅ Duplicate removal complete. Removed ${updateStatus.duplicatesRemoved} duplicates`);
+    
+  } catch (error) {
+    console.error('❌ Error during duplicate removal:', error);
+  }
+}
+
+/**
  * Background service that updates all participants in parallel
  */
 async function runBackgroundUpdate() {
   console.log('🚀 Starting background update service...');
+  
+  // Check if required functions are available
+  if (!getAllParticipants || !updateParticipant) {
+    throw new Error('Database functions are not available');
+  }
+  
   const startTime = Date.now();
 
   // Update status
@@ -130,9 +207,13 @@ async function runBackgroundUpdate() {
   updateStatus.startTime = new Date().toISOString();
   updateStatus.completed = 0;
   updateStatus.errors = 0;
+  updateStatus.duplicatesRemoved = 0;
 
   try {
-    // Get all participants from database
+    // First, remove duplicates
+    await removeDuplicateParticipants();
+    
+    // Get all participants from database (after duplicate removal)
     console.log('📊 Fetching all participants from database...');
     const participants = await getAllParticipants();
     console.log(`👥 Found ${participants.length} participants to update`);
@@ -189,6 +270,7 @@ async function runBackgroundUpdate() {
 
     console.log('✅ Background update completed!');
     console.log(`📈 Results: ${updateStatus.completed}/${participants.length} successful, ${updateStatus.errors} errors`);
+    console.log(`🗑️ Duplicates removed: ${updateStatus.duplicatesRemoved}`);
     console.log(`⏱️ Total time: ${duration}s`);
 
   } catch (error) {
@@ -209,6 +291,10 @@ async function updateParticipantData(participant, index) {
 
     if (!participant.profileUrl) {
       throw new Error('No profile URL found');
+    }
+
+    if (!fetchProfileData) {
+      throw new Error('Profile fetch function is not available');
     }
 
     // Add retry logic for failed requests with shorter timeout for Vercel
@@ -267,6 +353,10 @@ async function updateParticipantData(participant, index) {
     };
 
     // Update participant in database
+    if (!updateParticipant) {
+      throw new Error('Update participant function is not available');
+    }
+    
     await updateParticipant(participant.id, updateData);
 
     const endTime = Date.now();
@@ -306,6 +396,6 @@ async function updateParticipantData(participant, index) {
   }
 }
 
-// Add runtime config for Vercel
+// Update runtime config for better Vercel compatibility
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes max execution time
+export const maxDuration = 60; // Reduce to 1 minute to avoid timeouts
