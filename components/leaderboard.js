@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { useAuth } from "../contexts/AuthContext"
 import { ProfileModal } from "./ProfileModal"
 import { FAQ } from "./FAQ"
 import { HowToGuide } from "./HowToGuide"
@@ -13,7 +12,6 @@ import { subscribeToLeaderboard, getExistingParticipant, addParticipant, updateP
 import {
   Search,
   Users,
-  LogOut,
   Trophy,
   Cloud,
   Award,
@@ -29,7 +27,6 @@ import {
 } from "lucide-react"
 
 export function Leaderboard() {
-  const { user, logOut } = useAuth();
   const [participants, setParticipants] = useState([]);
   const [rankedParticipants, setRankedParticipants] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,13 +70,7 @@ export function Leaderboard() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logOut();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+  
 
   const handleAddParticipant = async (newParticipant) => {
     try {
@@ -180,25 +171,7 @@ export function Leaderboard() {
           </div>
         </div>
         
-        {/* User Profile */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-gray-100">
-            <Avatar className="h-10 w-10 ring-2 ring-blue-100">
-              <AvatarImage src={user?.photoURL || "/user-profile-illustration.png"} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
-                {user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-gray-900 truncate">
-                {user?.displayName || user?.email?.split('@')[0] || 'User'}
-              </div>
-              {user?.email && (
-                <div className="text-xs text-gray-500 truncate">{user.email}</div>
-              )}
-            </div>
-          </div>
-        </div>
+        
 
         {/* Search */}
         <div className="p-4">
@@ -284,17 +257,7 @@ export function Leaderboard() {
         </div>
 
 
-        {/* Bottom Actions */}
-        <div className="p-4 space-y-2 border-t border-gray-100">
-          <Button 
-            variant="ghost" 
-            onClick={handleLogout}
-            className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 h-11 rounded-xl"
-          >
-            <LogOut className="mr-3 h-5 w-5" />
-            Sign Out
-          </Button>
-        </div>
+        
       </aside>
 
       {/* Mobile Sidebar Overlay */}
