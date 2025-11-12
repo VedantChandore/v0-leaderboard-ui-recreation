@@ -133,6 +133,17 @@ export function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
+      {/* Important Notice */}
+      <div className="bg-red-600 text-white p-4 mb-6 rounded-lg shadow-lg">
+        <div className="max-w-6xl mx-auto">
+          <h3 className="text-lg font-bold mb-2">IMPORTANT NOTICE</h3>
+          <ol className="list-decimal pl-5 space-y-2 text-sm">
+            <li>The leaderboard is based on a first come, first serve basis, not on points</li>
+            <li>20 badges were mandatory and any badges or courses beyond the required 20 will not be considered, as no such provision was announced</li>
+            <li>Only new profiles created this month will be considered</li>
+          </ol>
+        </div>
+      </div>
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
