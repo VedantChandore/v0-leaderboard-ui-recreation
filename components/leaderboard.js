@@ -448,10 +448,7 @@ export function Leaderboard() {
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">Compete and climb the ranks!</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Medal className="h-4 w-4" />
-                  <span>Ranked by badges and labs</span>
-                </div>
+                
               </div>
             </div>
             
