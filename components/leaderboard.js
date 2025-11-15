@@ -19,7 +19,8 @@ import {
   Play,
   CheckCircle,
   Award,
-  Star
+  AlertTriangle,
+  Info
 } from "lucide-react"
 
 export function Leaderboard() {
@@ -28,6 +29,7 @@ export function Leaderboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState('leaderboard');
+  const [showRankNotice, setShowRankNotice] = useState(true); // Always show by default
 
   // Load leaderboard from CSV
   useEffect(() => {
@@ -66,6 +68,9 @@ export function Leaderboard() {
         console.log(`📋 Loaded ${participants.length} participants`);
         setParticipants(participants);
         setIsLoading(false);
+        
+        // Always show rank notice popup after loading - removed localStorage check
+        setShowRankNotice(true);
       })
       .catch(error => {
         console.error('❌ Error loading CSV:', error);
@@ -101,8 +106,114 @@ export function Leaderboard() {
     participant.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleCloseNotice = () => {
+    setShowRankNotice(false);
+    // Removed localStorage.setItem - popup will show again on refresh
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
+      {/* Rank Change Notice Modal */}
+      {showRankNotice && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 p-6 rounded-t-2xl">
+              <div className="flex items-center gap-3 text-white">
+                <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Important Notice</h2>
+                  <p className="text-amber-50 text-sm">Regarding Leaderboard Rankings</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Main Message */}
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-amber-900 mb-1">Your rank might have changed slightly</h3>
+                    <p className="text-sm text-amber-800">
+                      Please review the following criteria used for final rankings
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ranking Criteria */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-blue-600" />
+                  Ranking Criteria
+                </h3>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <ol className="list-decimal pl-5 space-y-2 text-sm text-red-900">
+                    <li className="leading-relaxed">
+                      <strong>First come, first serve basis:</strong> The leaderboard is based on submission time, not on points
+                    </li>
+                    <li className="leading-relaxed">
+                      <strong>20 badges mandatory:</strong> Any badges or courses beyond the required 20 will not be considered, as no such provision was announced
+                    </li>
+                    <li className="leading-relaxed">
+                      <strong>New profiles only:</strong> Only new profiles created this month will be considered
+                    </li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Community Guidelines */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Medal className="h-5 w-5 text-purple-600" />
+                  Community Guidelines
+                </h3>
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <ul className="space-y-2 text-sm text-purple-900">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 font-bold">•</span>
+                      <span><strong>Please do not create any issues</strong> on the group regarding rankings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 font-bold">•</span>
+                      <span><strong>Do not DM organizers personally</strong> about rank changes</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 font-bold">•</span>
+                      <span>All rankings are final and have been verified according to the above criteria</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Thank You Message */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 text-center">
+                <p className="text-sm text-gray-700">
+                  <strong className="text-blue-700">Thank you for your understanding and participation!</strong>
+                  <br />
+                  <span className="text-gray-600">We appreciate your cooperation in maintaining a positive community.</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 p-6 bg-gray-50 rounded-b-2xl">
+              <Button
+                onClick={handleCloseNotice}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <CheckCircle className="h-5 w-5 mr-2" />
+                I Understand
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
