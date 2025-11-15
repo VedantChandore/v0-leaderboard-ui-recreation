@@ -4,123 +4,102 @@ import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { ProfileModal } from "./ProfileModal"
 import { FAQ } from "./FAQ"
 import { HowToGuide } from "./HowToGuide"
-import { rankParticipants, getTierColor, getTierBgColor, getTierIcon } from "../lib/leaderboardManager"
-import { subscribeToLeaderboard, getExistingParticipant, addParticipant, updateParticipantProgress } from "../lib/leaderboardDB"
 import {
   Search,
-  Users,
   Trophy,
   Cloud,
-  Award,
-  Timer,
   Sparkles,
   TrendingUp,
   Medal,
-  Target,
   Menu,
   X,
   HelpCircle,
-  Play
+  Play,
+  CheckCircle,
+  Award,
+  Star
 } from "lucide-react"
 
 export function Leaderboard() {
   const [participants, setParticipants] = useState([]);
-  const [rankedParticipants, setRankedParticipants] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('leaderboard'); // 'leaderboard', 'faq', or 'howto'
+  const [currentView, setCurrentView] = useState('leaderboard');
 
-  // Real-time leaderboard subscription
+  // Load leaderboard from CSV
   useEffect(() => {
-    console.log('🚀 Initializing real-time leaderboard...');
+    console.log('📊 Loading leaderboard from CSV...');
     setIsLoading(true);
     
-    const unsubscribe = subscribeToLeaderboard((updatedParticipants) => {
-      console.log('⚡ Real-time update received:', updatedParticipants.length, 'participants');
-      
-      // Update connection status
-      setConnectionStatus('connected');
-      
-      // Set participants (already ranked from database)
-      setParticipants(updatedParticipants);
-      setRankedParticipants(updatedParticipants); // Already ranked
-      setIsLoading(false);
-      
-      // Log leaderboard changes
-      if (updatedParticipants.length > 0) {
-        console.log('🏆 Current Top 3:');
-        updatedParticipants.slice(0, 3).forEach((p, i) => {
-          console.log(`${i + 1}. ${p.name} - ${p.badgesEarned} badges (${p.tier})`);
+    fetch('/leaderboard.csv')
+      .then(response => response.text())
+      .then(csvText => {
+        console.log('✅ CSV loaded successfully');
+        
+        // Parse CSV
+        const lines = csvText.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',');
+        
+        const participants = lines.slice(1).map(line => {
+          const values = parseCSVLine(line);
+          const participant = {};
+          
+          headers.forEach((header, index) => {
+            participant[header.trim()] = values[index]?.trim() || '';
+          });
+          
+          return {
+            rank: parseInt(participant['Rank']) || 0,
+            name: participant['User Name'] || 'Unknown',
+            email: participant['User Email'] || '',
+            badges: parseInt(participant['Total Skill Badges']) || 0,
+            games: parseInt(participant['Total Arcade Games']) || 0,
+            dateAchieved: participant['Date Achieved'] || '',
+            status: participant['Status'] || '',
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(participant['User Name'] || 'Unknown')}`
+          };
         });
-      } else {
-        console.log('📭 No participants in leaderboard yet');
-      }
-    });
-
-    // Cleanup subscription on unmount
-    return () => {
-      console.log('🔌 Disconnecting real-time leaderboard');
-      unsubscribe();
-    };
+        
+        console.log(`📋 Loaded ${participants.length} participants`);
+        setParticipants(participants);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('❌ Error loading CSV:', error);
+        setIsLoading(false);
+      });
   }, []);
 
-  
-
-  const handleAddParticipant = async (newParticipant) => {
-    try {
-      console.log('Attempting to add/update participant:', newParticipant);
+  // Parse CSV line handling quoted fields
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
       
-      // Check if participant already exists
-      const existingParticipant = await getExistingParticipant(newParticipant.profileUrl);
-      console.log('Existing participant check:', existingParticipant);
-      
-      if (existingParticipant) {
-        // Update existing participant with new progress
-        console.log('Updating existing participant progress...');
-        const updatedParticipant = await updateParticipantProgress(existingParticipant, newParticipant);
-        console.log('Participant progress updated successfully:', updatedParticipant.progressInfo);
-        
-        // Return progress info for UI feedback
-        return {
-          isUpdate: true,
-          progressInfo: updatedParticipant.progressInfo,
-          participant: updatedParticipant
-        };
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
       } else {
-        // Add new participant to Firestore
-        console.log('Adding new participant to database...');
-        const docId = await addParticipant(newParticipant);
-        console.log('New participant added successfully with ID:', docId);
-        
-        return {
-          isUpdate: false,
-          docId: docId,
-          participant: newParticipant
-        };
+        current += char;
       }
-    } catch (error) {
-      console.error('Error adding/updating participant:', error);
-      throw error; // Re-throw to be handled by modal
     }
-  };
+    
+    result.push(current);
+    return result;
+  }
 
   // Filter participants based on search term
-  const filteredParticipants = rankedParticipants.filter(participant =>
+  const filteredParticipants = participants.filter(participant =>
     participant.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const topThree = filteredParticipants.slice(0, 3);
-  const remaining = filteredParticipants.slice(3);
-
-  const handleTrackProgress = () => {
-    setIsModalOpen(true);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
@@ -154,13 +133,11 @@ export function Leaderboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 text-blue-100 text-sm">
-              <Sparkles className="h-4 w-4" />
-              <span>Google Cloud Learning Platform</span>
+              <CheckCircle className="h-4 w-4" />
+              <span>Event Completed</span>
             </div>
           </div>
         </div>
-        
-        
 
         {/* Search */}
         <div className="p-4">
@@ -190,7 +167,7 @@ export function Leaderboard() {
               <span className="font-semibold">Leaderboard</span>
             </div>
             <p className={`text-sm ${currentView === 'leaderboard' ? 'text-blue-100' : 'text-gray-500'}`}>
-              Track your progress and compete!
+              Final rankings and winners
             </p>
           </button>
 
@@ -227,26 +204,24 @@ export function Leaderboard() {
               Get answers to common questions
             </p>
           </button>
-      
         </nav>
+
         {/* Quick Stats */}
         <div className="px-4 pb-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-xl border border-blue-200">
               <div className="text-2xl font-bold text-blue-700">{participants.length}</div>
-              <div className="text-xs text-blue-600 font-medium">Total Learners</div>
+              <div className="text-xs text-blue-600 font-medium">Total Participants</div>
             </div>
             <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-3 rounded-xl border border-green-200">
               <div className="text-2xl font-bold text-green-700">
-                {participants.reduce((sum, p) => sum + (p.badgesEarned || 0), 0)}
+                {/* {participants.filter(p => p.status === 'Achieved').length} */}
+                103
               </div>
-              <div className="text-xs text-green-600 font-medium">Total Badges</div>
+              <div className="text-xs text-green-600 font-medium">Completed</div>
             </div>
           </div>
         </div>
-
-
-        
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -288,263 +263,208 @@ export function Leaderboard() {
                     </h1>
                   </div>
                   <p className="text-sm text-gray-600 hidden lg:block">
-                    Master Google Cloud Platform through hands-on labs and earn industry-recognized badges
+                    Final Rankings - Event Completed Successfully! 🎉
                   </p>
                 </div>
               </div>
               
               <div className="flex flex-wrap items-center gap-3">
-                {/* Status Indicator - Only show on leaderboard */}
-                {currentView === 'leaderboard' && (
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border shadow-sm ${
-                    connectionStatus === 'connected' 
-                      ? 'bg-green-50 border-green-200 text-green-700'
-                      : connectionStatus === 'connecting'
-                      ? 'bg-amber-50 border-amber-200 text-amber-700'
-                      : 'bg-red-50 border-red-200 text-red-700'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full ${
-                      connectionStatus === 'connected' 
-                        ? 'bg-green-500 animate-pulse'
-                        : connectionStatus === 'connecting'
-                        ? 'bg-amber-500 animate-spin'
-                        : 'bg-red-500'
-                    }`} />
-                    {connectionStatus === 'connected' ? 'Live Updates' : 
-                     connectionStatus === 'connecting' ? 'Connecting...' : 'Offline'}
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
-                  <Timer className="h-4 w-4 text-amber-600" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full shadow-sm">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="text-sm text-gray-700 hidden sm:inline">
-                    Event ends: <span className="font-semibold text-amber-700">31st Oct</span>
+                    Event Ended: <span className="font-semibold text-green-700">31st Oct</span>
                   </span>
-                  <span className="text-sm text-gray-700 sm:hidden font-semibold text-amber-700">31st Oct</span>
+                  <span className="text-sm text-gray-700 sm:hidden font-semibold text-green-700">Completed</span>
                 </div>
-                
-                {/* Track Progress button - Only show on leaderboard */}
-                {/* {currentView === 'leaderboard' && (
-                  <Button 
-                    onClick={handleTrackProgress}
-                    className="h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl px-4 lg:px-6 shadow-lg hover:shadow-xl transition-all duration-200"
-                  >
-                    <Target className="h-4 w-4 mr-2" />
-                    Track Progress
-                  </Button>
-                )} */}
               </div>
             </div>
           </div>
         </header>
 
-        {/* Enhanced Content */}
+        {/* Content */}
         {currentView === 'leaderboard' ? (
-          <div className="p-4 lg:p-8">
-          {/* Disclaimer Notice (exact text only) */}
-          <div className="max-w-6xl mx-auto mb-8">
-            <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 p-4 md:p-5 shadow-sm">
-              <ol className="list-decimal pl-5 space-y-1 text-sm md:text-base leading-relaxed">
-                <li>The leaderboard is based on a first come, first serve basis, not on points</li>
-                <li>20 badges were mandatory and any badges or courses beyond the required 20 will not be considered, as no such provision was announced</li>
-                <li>Only new profiles created this month will be considered</li>
-              </ol>
+          <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+            {/* Disclaimer Notice */}
+            <div className="mb-6">
+              <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 p-4 shadow-sm">
+                <ol className="list-decimal pl-5 space-y-1 text-sm leading-relaxed">
+                  <li>The leaderboard is based on a first come, first serve basis, not on points</li>
+                  <li>20 badges were mandatory and any badges or courses beyond the required 20 will not be considered, as no such provision was announced</li>
+                  <li>Only new profiles created this month will be considered</li>
+                </ol>
+              </div>
             </div>
-          </div>
-          {/* Top 3 Podium - Enhanced */}
-          {topThree.length > 0 && (
-            <div className="mb-8">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-500 to-red-500 bg-clip-text text-transparent mb-2">
-                  🏆 Hall of Fame
-                </h2>
-                <p className="text-gray-600">Our top performing cloud champions</p>
+
+            {/* Event Summary */}
+            <div className="mb-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-2xl p-6 shadow-lg">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center gap-2 mb-3">
+                  <Trophy className="h-7 w-7 text-blue-600" />
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    🎉 StudyJams Event Completed 🎉
+                  </h2>
+                  <Trophy className="h-7 w-7 text-blue-600" />
+                </div>
+                <p className="text-gray-700 text-base">
+                  Thank you to all participants who completed the challenge!
+                </p>
+              </div>
+
+              {/* Event Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                      <CheckCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-700">
+                        {/* {participants.filter(p => p.badges >= 19 && p.games >= 1).length} */} 103
+                      </div>
+                      <div className="text-sm text-gray-600">Completed 19+1</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                      <Award className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-blue-700">
+                        {participants.length}
+                      </div>
+                      <div className="text-sm text-gray-600">Total Participants</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Leaderboard Table */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Final Leaderboard
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">Ranked by submission order</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Medal className="h-4 w-4" />
+                    <span>{filteredParticipants.length} Participants</span>
+                  </div>
+                </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
-                {topThree.map((participant, index) => {
-                  const podiumStyles = [
-                    { 
-                      bg: 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500', 
-                      ring: 'ring-amber-200',
-                      crown: '👑',
-                      height: 'lg:h-90'
-                    },
-                    { 
-                      bg: 'bg-gradient-to-br from-slate-400 via-gray-500 to-zinc-600', 
-                      ring: 'ring-slate-200',
-                      crown: '🥈',
-                      height: 'lg:h-90'
-                    },
-                    { 
-                      bg: 'bg-gradient-to-br from-amber-600 via-orange-700 to-red-600', 
-                      ring: 'ring-orange-200',
-                      crown: '🥉',
-                      height: 'lg:h-90'
-                    }
-                  ];
-                  const style = podiumStyles[index];
-                  
-                  return (
-                    <div key={index} className={`relative ${style.height} transform hover:scale-105 transition-all duration-300`}>
-                      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 h-full flex flex-col justify-between relative overflow-hidden">
-                        {/* Background Pattern */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-indigo-50/50 opacity-60"></div>
-                        
-                        {/* Rank Badge */}
-                        <div className={`absolute -top-2 -right-2 w-16 h-16 ${style.bg} rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg ${style.ring} ring-4`}>
-                          {participant.place}
-                        </div>
-                        
-                        {/* Crown */}
-                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 text-3xl">
-                          {style.crown}
-                        </div>
-                        
-                        <div className="relative z-10 text-center pt-4">
-                          <Avatar className="h-20 w-20 mx-auto mb-4 ring-4 ring-white shadow-lg">
-                            <AvatarImage src={participant.avatar} />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-2xl">
-                              {participant.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          
-                          <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">{participant.name}</h3>
-                          
-                          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${getTierBgColor(participant.tier)} mb-4 shadow-sm`}>
-                            <span className="text-lg">{getTierIcon(participant.tier)}</span>
-                            <span className={`text-sm font-semibold ${getTierColor(participant.tier)}`}>
-                              {participant.tier}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="relative z-10 grid grid-cols-2 gap-4 text-center">
-                          <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
-                            <div className="text-2xl font-bold text-blue-700">{participant.badgesEarned}</div>
-                            <div className="text-xs text-blue-600 font-medium">Badges</div>
-                          </div>
-                          <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-                            <div className="text-2xl font-bold text-green-700">{participant.points}</div>
-                            <div className="text-xs text-green-600 font-medium">Points</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Enhanced Participants Table */}
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
-            <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                    {topThree.length > 0 ? 'Rising Stars' : 'Leaderboard Rankings'}
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">Compete and climb the ranks!</p>
-                </div>
-                
-              </div>
-            </div>
-            
-            {remaining.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 w-20">Rank</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Participant</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 w-48">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {remaining.map((participant, index) => (
-                      <tr key={index} className="border-b border-gray-50 hover:bg-blue-50/30 transition-all duration-200 group">
-                        <td className="py-6 px-6">
-                          <div className="flex items-center justify-center">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-bold text-slate-700 group-hover:from-blue-100 group-hover:to-blue-200 group-hover:text-blue-700 transition-all duration-200">
-                              {participant.place}
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="py-6 px-6">
-                          <div className="flex items-center gap-4">
-                            <Avatar className="h-12 w-12 shadow-sm ring-2 ring-white">
-                              <AvatarImage src={participant.avatar} />
-                              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
-                                {participant.name[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="text-base font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">
-                                {participant.name}
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                                <span className="flex items-center gap-1">
-                                  <Award className="h-3 w-3" />
-                                  {participant.badgesEarned} badges
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Target className="h-3 w-3" />
-                                  {participant.points} points
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="py-6 px-6">
-                          <div className={`inline-flex items-center gap-3 px-4 py-3 rounded-full shadow-sm ${getTierBgColor(participant.tier)}`}>
-                            <span className="text-lg">{getTierIcon(participant.tier)}</span>
-                            <span className={`text-sm font-semibold ${getTierColor(participant.tier)}`}>
-                              {participant.tier}
-                            </span>
-                          </div>
-                        </td>
+              {filteredParticipants.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50/50">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-20">Rank</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Participant</th>
+                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700 w-32">Completion</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : !topThree.length ? (
-              <div className="p-12 text-center">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mx-auto mb-6">
-                  <Trophy className="h-10 w-10 text-blue-500" />
+                    </thead>
+                    <tbody>
+                      {filteredParticipants.map((participant, index) => {
+                        const isWinner = participant.rank <= 25;
+                        const isTop3 = participant.rank <= 3;
+                        const isCompleted = participant.badges >= 19 && participant.games >= 1;
+                        
+                        return (
+                          <tr 
+                            key={index} 
+                            className={`border-b border-gray-50 transition-all duration-200 group ${
+                              isWinner 
+                                ? 'bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-orange-50/50 hover:from-amber-50 hover:via-yellow-50 hover:to-orange-50' 
+                                : 'hover:bg-blue-50/30'
+                            }`}
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center justify-center">
+                                <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 ${
+                                  isTop3
+                                    ? participant.rank === 1
+                                      ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-lg ring-4 ring-amber-200'
+                                      : participant.rank === 2
+                                      ? 'bg-gradient-to-br from-slate-400 to-gray-500 text-white shadow-lg ring-4 ring-slate-200'
+                                      : 'bg-gradient-to-br from-amber-600 to-orange-700 text-white shadow-lg ring-4 ring-orange-200'
+                                    : isWinner
+                                    ? 'bg-gradient-to-br from-amber-100 to-yellow-200 text-amber-800 shadow-md ring-2 ring-amber-300'
+                                    : 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 group-hover:from-blue-100 group-hover:to-blue-200 group-hover:text-blue-700'
+                                }`}>
+                                  {isTop3 && (
+                                    <span className="mr-0.5 text-base">
+                                      {participant.rank === 1 ? '👑' : participant.rank === 2 ? '🥈' : '🥉'}
+                                    </span>
+                                  )}
+                                  <span className="text-sm">{participant.rank}</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                <Avatar className={`h-10 w-10 shadow-sm ${
+                                  isWinner ? 'ring-4 ring-amber-200' : 'ring-2 ring-white'
+                                }`}>
+                                  <AvatarImage src={participant.avatar} />
+                                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-sm">
+                                    {participant.name[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-sm font-semibold transition-colors ${
+                                    isWinner ? 'text-amber-900' : 'text-gray-900 group-hover:text-blue-900'
+                                  }`}>
+                                    <span className="truncate">{participant.name}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-4">
+                              <div className="flex items-center justify-center gap-2">
+                                {isCompleted ? (
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                                    <CheckCircle className="h-3.5 w-3.5" />
+                                    <span>{participant.badges} + {participant.games}</span>
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 text-xs font-medium rounded-full border border-gray-200">
+                                    <Award className="h-3.5 w-3.5" />
+                                    <span>{participant.badges} + {participant.games}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Start Your Journey?</h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Be the first to join our StudyJams leaderboard and showcase your Google Cloud skills!
-                </p>
-                {/* <Button 
-                  onClick={handleTrackProgress}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Get Started
-                </Button> */}
-              </div>
-            ) : null}
-          </div>
+              ) : (
+                <div className="p-12 text-center">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mx-auto mb-4">
+                    <Trophy className="h-8 w-8 text-blue-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">No Results Found</h3>
+                  <p className="text-sm text-gray-600">Try adjusting your search terms</p>
+                </div>
+              )}
+            </div>
           </div>
         ) : currentView === 'faq' ? (
           <FAQ />
         ) : (
           <HowToGuide />
         )}
-
-        {/* Profile Modal */}
-        <ProfileModal 
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onParticipantAdded={handleAddParticipant}
-          existingParticipants={participants}
-        />
       </main>
     </div>
   )
